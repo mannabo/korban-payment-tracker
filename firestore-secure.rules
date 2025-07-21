@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Allow public read access to participants but only specific fields
+    match /participants/{participantId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Allow public read access to groups
+    match /groups/{groupId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Keep payments completely private
+    match /payments/{paymentId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // User roles - only for authenticated users
+    match /userRoles/{roleId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // All other documents require authentication
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

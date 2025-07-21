@@ -1,0 +1,29 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules for Korban Payment Tracker
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow uploads to receipts folder for ALL users (authenticated and anonymous)
+    match /receipts/{receiptId} {
+      // Allow read access for ALL users (needed for getDownloadURL after upload)
+      allow read: if true;
+      
+      // Allow write (upload) for ALL users - anonymous participants can upload receipts
+      // File size limit: 5MB, only images
+      allow write: if resource == null // Only for new uploads
+        && request.resource.size < 5 * 1024 * 1024 // 5MB limit
+        && request.resource.contentType.matches('image/.*');
+    }
+    
+    // Allow read access for admin users to all files
+    match /{allPaths=**} {
+      allow read: if request.auth != null 
+        && request.auth.token.admin == true;
+    }
+    
+    // Deny all other access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
