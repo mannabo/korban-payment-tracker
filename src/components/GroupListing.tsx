@@ -1309,8 +1309,8 @@ export const GroupListing: React.FC<GroupListingProps> = ({ onParticipantSelecte
             })
             .map(group => {
             const allGroupParticipants = getParticipantsByGroup(group.id);
-            const groupParticipants = filterParticipants(allGroupParticipants)
-              .sort((a, b) => a.name.localeCompare(b.name));
+            const groupParticipants = filterParticipants(allGroupParticipants);
+            // Keep participants in admin-defined order (database order)
             
             const totalParticipants = groupParticipants.length;
             const totalMonthsPossible = totalParticipants * 8;

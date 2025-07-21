@@ -6,9 +6,15 @@ import { getAllParticipants, getGroups, getPaymentsByParticipant } from '../util
 
 interface StyledPublicPortalProps {
   onShowAdminLogin?: () => void;
+  showReturnToAdmin?: boolean;
+  onReturnToAdmin?: () => void;
 }
 
-export const StyledPublicPortal: React.FC<StyledPublicPortalProps> = ({ onShowAdminLogin }) => {
+export const StyledPublicPortal: React.FC<StyledPublicPortalProps> = ({ 
+  onShowAdminLogin, 
+  showReturnToAdmin = false, 
+  onReturnToAdmin 
+}) => {
   const [selectedParticipant, setSelectedParticipant] = useState<{ id: string; name: string; groupId: string } | null>(null);
   const [showGroupListing, setShowGroupListing] = useState(false);
   const [stats, setStats] = useState({ totalParticipants: 0, totalGroups: 0, collectionProgress: 0 });
@@ -29,7 +35,9 @@ export const StyledPublicPortal: React.FC<StyledPublicPortalProps> = ({ onShowAd
   };
 
   const handleAdminClick = () => {
-    if (onShowAdminLogin) {
+    if (showReturnToAdmin && onReturnToAdmin) {
+      onReturnToAdmin();
+    } else if (onShowAdminLogin) {
       onShowAdminLogin();
     }
   };
@@ -388,9 +396,9 @@ export const StyledPublicPortal: React.FC<StyledPublicPortalProps> = ({ onShowAd
               <button 
                 onClick={handleAdminClick}
                 style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                  backgroundColor: showReturnToAdmin ? 'rgba(5, 150, 105, 0.9)' : 'rgba(255, 255, 255, 0.15)',
                   color: 'white',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  border: showReturnToAdmin ? '1px solid rgba(5, 150, 105, 0.5)' : '1px solid rgba(255, 255, 255, 0.3)',
                   borderRadius: '8px',
                   padding: '0.5rem 1rem',
                   cursor: 'pointer',
@@ -398,18 +406,19 @@ export const StyledPublicPortal: React.FC<StyledPublicPortalProps> = ({ onShowAd
                   fontWeight: '500',
                   backdropFilter: 'blur(10px)',
                   transition: 'all 0.2s',
-                  fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"
+                  fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+                  boxShadow: showReturnToAdmin ? '0 2px 4px rgba(0,0,0,0.2)' : 'none'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)';
+                  e.currentTarget.style.backgroundColor = showReturnToAdmin ? 'rgba(5, 150, 105, 1)' : 'rgba(255, 255, 255, 0.25)';
                   e.currentTarget.style.transform = 'translateY(-1px)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                  e.currentTarget.style.backgroundColor = showReturnToAdmin ? 'rgba(5, 150, 105, 0.9)' : 'rgba(255, 255, 255, 0.15)';
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                👤 Admin Login
+                {showReturnToAdmin ? '🔙 Kembali ke Admin' : '👤 Admin Login'}
               </button>
             </div>
           </div>

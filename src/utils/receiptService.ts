@@ -180,7 +180,7 @@ export class ReceiptService {
         Object.entries({
           ...receiptUpload,
           uploadDate: serverTimestamp()
-        }).filter(([_, value]) => value !== undefined)
+        }).filter(([, value]) => value !== undefined)
       );
 
       const docRef = await addDoc(collection(db, 'receiptUploads'), cleanedData);

@@ -17,6 +17,7 @@ import ReceiptManagement from './components/ReceiptManagement';
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [showPublicPortal, setShowPublicPortal] = useState(false);
   const { user, loading, logout, userRole } = useAuthContext();
   const { isMobile, isSmallMobile } = useResponsive();
 
@@ -30,6 +31,18 @@ function App() {
       return <LoginForm onBack={() => setShowAdminLogin(false)} />;
     }
     return <StyledPublicPortal onShowAdminLogin={() => setShowAdminLogin(true)} />;
+  }
+
+  // If admin wants to view public portal while logged in
+  if (user && userRole === 'admin' && showPublicPortal) {
+    return <StyledPublicPortal 
+      onShowAdminLogin={() => {
+        setShowPublicPortal(false);
+        setActiveTab('dashboard');
+      }}
+      showReturnToAdmin={true}
+      onReturnToAdmin={() => setShowPublicPortal(false)}
+    />;
   }
 
   // If participant, show participant dashboard
@@ -93,7 +106,7 @@ function App() {
             </div>
             <div className="flex items-center gap-2">
               <button 
-                onClick={() => setShowAdminLogin(false)}
+                onClick={() => setShowPublicPortal(true)}
                 className="btn btn-secondary"
                 style={{ 
                   display: 'flex', 

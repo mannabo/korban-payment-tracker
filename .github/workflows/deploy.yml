@@ -1,0 +1,144 @@
+name: Deploy to Hostinger via SSH
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🔄 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🟢 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: 📦 Install dependencies
+      run: npm ci
+      
+    - name: 🧪 Run tests (if available)
+      run: npm run test --if-present
+      
+    - name: 🏗️ Build project
+      run: npm run build
+      env:
+        VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+        VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+        VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+        VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+        VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+        VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+        VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}
+    
+    - name: 📝 Create deployment info file
+      run: |
+        echo "Deployment Info:" > ./dist/DEPLOY_INFO.txt
+        echo "Deployed on: $(date)" >> ./dist/DEPLOY_INFO.txt
+        echo "Commit: ${{ github.sha }}" >> ./dist/DEPLOY_INFO.txt
+        echo "Branch: ${{ github.ref_name }}" >> ./dist/DEPLOY_INFO.txt
+        echo "Actor: ${{ github.actor }}" >> ./dist/DEPLOY_INFO.txt
+    
+    - name: 🔐 Test SSH Connection
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOSTINGER_SSH_HOST }}
+        username: ${{ secrets.HOSTINGER_SSH_USER }}
+        key: ${{ secrets.HOSTINGER_SSH_KEY }}
+        port: ${{ secrets.HOSTINGER_SSH_PORT }}
+        script: |
+          echo "✅ SSH Connection successful!"
+          echo "📍 Current directory: $(pwd)"
+          echo "📊 Disk usage:"
+          df -h | head -2
+          echo "📁 Target directory check:"
+          ls -la /public_html/ | grep korbanperdana || echo "korbanperdana directory not found - will be created"
+    
+    - name: 🚀 Deploy to Hostinger
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOSTINGER_SSH_HOST }}
+        username: ${{ secrets.HOSTINGER_SSH_USER }}
+        key: ${{ secrets.HOSTINGER_SSH_KEY }}
+        port: ${{ secrets.HOSTINGER_SSH_PORT }}
+        script: |
+          echo "🏁 Starting deployment process..."
+          
+          # For subdomain korbanperdana.jpkkhangtuah.com, files go to /public_html/
+          # Create backup of current deployment if exists
+          if [ -d "/public_html" ] && [ "$(ls -A /public_html 2>/dev/null)" ]; then
+            echo "📦 Creating backup..."
+            BACKUP_DIR="/backup.$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$BACKUP_DIR"
+            cp -r /public_html/* "$BACKUP_DIR/" 2>/dev/null || true
+            echo "✅ Backup created: $BACKUP_DIR"
+          fi
+          
+          # Clear existing files but keep important ones
+          echo "🧹 Cleaning old files..."
+          find /public_html -type f ! -name '.htaccess' ! -name 'DEPLOY_INFO.txt.old' -maxdepth 1 -delete 2>/dev/null || true
+          
+          # Keep old deploy info as reference
+          if [ -f "/public_html/DEPLOY_INFO.txt" ]; then
+            mv /public_html/DEPLOY_INFO.txt /public_html/DEPLOY_INFO.txt.old
+          fi
+          
+          echo "✅ Deployment directory prepared!"
+    
+    - name: 📤 Upload built files
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.HOSTINGER_SSH_HOST }}
+        username: ${{ secrets.HOSTINGER_SSH_USER }}
+        key: ${{ secrets.HOSTINGER_SSH_KEY }}
+        port: ${{ secrets.HOSTINGER_SSH_PORT }}
+        source: "./dist/*"
+        target: "/public_html/"
+        strip_components: 1
+        
+    - name: ✅ Verify deployment
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOSTINGER_SSH_HOST }}
+        username: ${{ secrets.HOSTINGER_SSH_USER }}
+        key: ${{ secrets.HOSTINGER_SSH_KEY }}
+        port: ${{ secrets.HOSTINGER_SSH_PORT }}
+        script: |
+          echo "🔍 Verifying deployment..."
+          
+          if [ -f "/public_html/index.html" ]; then
+            echo "✅ index.html found - deployment successful!"
+          else
+            echo "❌ index.html not found - deployment may have failed!"
+            exit 1
+          fi
+          
+          echo "📊 Deployment summary:"
+          echo "📁 Files deployed: $(find /public_html -type f | wc -l)"
+          echo "📦 Directory size: $(du -sh /public_html | cut -f1)"
+          
+          if [ -f "/public_html/DEPLOY_INFO.txt" ]; then
+            echo "📝 Deployment info:"
+            cat /public_html/DEPLOY_INFO.txt
+          fi
+          
+          echo "🎉 Deployment completed successfully!"
+    
+    - name: 🚨 Cleanup old backups (keep last 5)
+      uses: appleboy/ssh-action@v1.0.0
+      if: success()
+      with:
+        host: ${{ secrets.HOSTINGER_SSH_HOST }}
+        username: ${{ secrets.HOSTINGER_SSH_USER }}
+        key: ${{ secrets.HOSTINGER_SSH_KEY }}
+        port: ${{ secrets.HOSTINGER_SSH_PORT }}
+        script: |
+          echo "🧹 Cleaning up old backups (keeping last 5)..."
+          ls -t /backup.* 2>/dev/null | tail -n +6 | xargs rm -rf 2>/dev/null || true
+          echo "✅ Cleanup completed!"

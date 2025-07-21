@@ -1,0 +1,64 @@
+name: Deploy to Staging (Development)
+
+on:
+  push:
+    branches: [ develop, staging ]
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build project (Development)
+      run: npm run build
+      env:
+        # Development/Staging Firebase config
+        VITE_FIREBASE_API_KEY: ${{ secrets.STAGING_FIREBASE_API_KEY }}
+        VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.STAGING_FIREBASE_AUTH_DOMAIN }}
+        VITE_FIREBASE_PROJECT_ID: ${{ secrets.STAGING_FIREBASE_PROJECT_ID }}
+        VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.STAGING_FIREBASE_STORAGE_BUCKET }}
+        VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.STAGING_FIREBASE_MESSAGING_SENDER_ID }}
+        VITE_FIREBASE_APP_ID: ${{ secrets.STAGING_FIREBASE_APP_ID }}
+        VITE_FIREBASE_MEASUREMENT_ID: ${{ secrets.STAGING_FIREBASE_MEASUREMENT_ID }}
+    
+    - name: 🚀 Deploy to Staging via SSH
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.HOSTINGER_SSH_HOST }}
+        username: ${{ secrets.HOSTINGER_SSH_USER }}
+        key: ${{ secrets.HOSTINGER_SSH_KEY }}
+        port: ${{ secrets.HOSTINGER_SSH_PORT }}
+        script: |
+          echo "🧪 Starting staging deployment..."
+          
+          # Create staging directory
+          mkdir -p /public_html/korbanperdana-staging
+          
+          # Clear staging files
+          find /public_html/korbanperdana-staging -type f ! -name '.htaccess' -delete 2>/dev/null || true
+          find /public_html/korbanperdana-staging -type d -empty -delete 2>/dev/null || true
+          
+          echo "✅ Staging directory prepared!"
+    
+    - name: 📤 Upload staging files
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.HOSTINGER_SSH_HOST }}
+        username: ${{ secrets.HOSTINGER_SSH_USER }}
+        key: ${{ secrets.HOSTINGER_SSH_KEY }}
+        port: ${{ secrets.HOSTINGER_SSH_PORT }}
+        source: "./dist/*"
+        target: "/public_html/korbanperdana-staging/"
+        strip_components: 1
