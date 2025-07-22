@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthContext } from '../contexts/AuthContext';
 import { getPaymentsByParticipant, getAllParticipants, getGroup, getParticipantsByGroup, createChangeRequest, createAuditLog, getChangeRequestsByParticipant } from '../utils/firestore';
-import { Payment, Participant, Group, MONTHS, MONTH_LABELS, getParticipantPrice, ParticipantChangeRequest, SacrificeType, SACRIFICE_TYPE_LABELS, SACRIFICE_TYPE_DESCRIPTIONS, getSacrificeTypeColors } from '../types';
+import { Payment, Participant, Group, MONTHS, MONTH_LABELS, getParticipantPrice, ParticipantChangeRequest, SacrificeType, SACRIFICE_TYPE_LABELS, SACRIFICE_TYPE_DESCRIPTIONS, getSacrificeTypeColors, ParticipantCredit } from '../types';
+import CreditService from '../utils/creditService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { GroupProgressView } from '../components/GroupProgressView';
 import { CheckCircle, XCircle, Calendar, Users, DollarSign, TrendingUp, Eye, User, Edit3, Clock, AlertCircle } from 'lucide-react';
@@ -19,6 +20,8 @@ export const ParticipantDashboard: React.FC = () => {
   const [editFormData, setEditFormData] = useState({ name: '', phone: '', email: '', sacrificeType: 'korban_sunat' as SacrificeType });
   const [pendingRequests, setPendingRequests] = useState<ParticipantChangeRequest[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [credit, setCredit] = useState<ParticipantCredit | null>(null);
+  const creditService = CreditService.getInstance();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,6 +70,16 @@ export const ParticipantDashboard: React.FC = () => {
             console.warn('Unable to load change requests:', requestError);
             setPendingRequests([]);
           }
+          
+          // Get participant credit balance (with fallback)
+          try {
+            const participantCredit = await creditService.getParticipantCredit(currentParticipant.id);
+            setCredit(participantCredit);
+          } catch (creditError) {
+            console.warn('Unable to load credit balance:', creditError);
+            // Continue without credit balance - not critical for basic functionality
+            setCredit(null);
+          }
         }
       } catch (err) {
         setError('Failed to load data');
@@ -112,8 +125,10 @@ export const ParticipantDashboard: React.FC = () => {
   const totalPaid = payments.filter(p => p.isPaid).reduce((sum, p) => sum + p.amount, 0);
   const monthlyAmount = participant ? getParticipantPrice(participant.sacrificeType || 'korban_sunat') : 100;
   const totalRequired = monthlyAmount * 8; // 8 months total
-  const progressPercentage = (totalPaid / totalRequired) * 100;
-  const remainingAmount = totalRequired - totalPaid;
+  const creditBalance = credit?.creditBalance || 0;
+  const totalValue = totalPaid + creditBalance; // Include credit in total value
+  const progressPercentage = (totalValue / totalRequired) * 100;
+  const remainingAmount = Math.max(0, totalRequired - totalValue); // Can't be negative with credit
   
   // Get color theme based on sacrifice type
   const colorTheme = participant ? getSacrificeTypeColors(participant.sacrificeType || 'korban_sunat') : getSacrificeTypeColors('korban_sunat');
@@ -500,8 +515,13 @@ export const ParticipantDashboard: React.FC = () => {
               <div className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Total Dibayar</p>
-                    <p className="text-2xl font-bold text-green-600">RM{totalPaid}</p>
+                    <p className="text-sm font-medium text-gray-600">Total Nilai</p>
+                    <p className="text-2xl font-bold text-green-600 mb-1">RM{totalValue}</p>
+                    {creditBalance > 0 && (
+                      <p className="text-xs text-green-700 font-medium">
+                        RM{totalPaid} bayaran + RM{creditBalance} kredit
+                      </p>
+                    )}
                   </div>
                   <DollarSign className="h-8 w-8 text-green-500" />
                 </div>
@@ -536,6 +556,22 @@ export const ParticipantDashboard: React.FC = () => {
                   <Users className="h-8 w-8 text-purple-500" />
                 </div>
               </div>
+              
+              {/* Credit Balance Card */}
+              {credit && credit.creditBalance > 0 && (
+                <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 rounded-lg shadow-md p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-green-700">Baki Kredit</p>
+                      <p className="text-2xl font-bold text-green-800 mb-1">RM{credit.creditBalance}</p>
+                      <p className="text-xs text-green-700 font-medium">
+                        {creditService.calculatePrepaidMonths(credit.creditBalance)} bulan bayaran hadapan
+                      </p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Progress Bar */}
@@ -553,7 +589,14 @@ export const ParticipantDashboard: React.FC = () => {
               </div>
               <div className="flex justify-between text-sm text-gray-600">
                 <span>RM0</span>
-                <span className="font-medium">RM{totalPaid} / RM{totalRequired}</span>
+                <span className="font-medium">
+                  RM{totalValue} / RM{totalRequired}
+                  {creditBalance > 0 && (
+                    <span className="block text-xs text-green-700">
+                      (Termasuk RM{creditBalance} kredit)
+                    </span>
+                  )}
+                </span>
                 <span>RM{totalRequired}</span>
               </div>
             </div>
@@ -571,6 +614,10 @@ export const ParticipantDashboard: React.FC = () => {
                   const isPaid = payment?.isPaid || false;
                   const amount = payment?.amount || 0;
                   
+                  // Check if this month is covered by credit
+                  const isCoveredByCredit = credit && credit.creditBalance >= 100 && 
+                    creditService.getNextUnpaidMonth(credit.creditBalance, month, MONTHS) !== month;
+                  
                   // Get sacrifice type colors for paid months
                   const sacrificeType = participant?.sacrificeType || 'korban_sunat';
                   const colorTheme = getSacrificeTypeColors(sacrificeType);
@@ -581,11 +628,13 @@ export const ParticipantDashboard: React.FC = () => {
                       className={`border-2 rounded-lg p-4 ${
                         isPaid 
                           ? `border-opacity-50` 
+                          : isCoveredByCredit
+                          ? 'border-green-300 bg-green-50'
                           : 'border-gray-200 bg-gray-50'
                       }`}
                       style={{
-                        borderColor: isPaid ? colorTheme.border : undefined,
-                        backgroundColor: isPaid ? colorTheme.light : undefined
+                        borderColor: isPaid ? colorTheme.border : isCoveredByCredit ? '#10b981' : undefined,
+                        backgroundColor: isPaid ? colorTheme.light : isCoveredByCredit ? '#ecfdf5' : undefined
                       }}
                     >
                       <div className="flex items-center justify-between">
@@ -593,8 +642,15 @@ export const ParticipantDashboard: React.FC = () => {
                           <h3 className="font-medium text-gray-900">
                             {MONTH_LABELS[month]}
                           </h3>
-                          <p className="text-sm text-gray-600">
-                            {isPaid ? `RM${amount}` : `RM${monthlyAmount} - Belum Dibayar`}
+                          <p className={`text-sm ${
+                            isPaid ? 'text-gray-600' : isCoveredByCredit ? 'text-green-700 font-medium' : 'text-gray-600'
+                          }`}>
+                            {isPaid 
+                              ? `RM${amount}` 
+                              : isCoveredByCredit 
+                              ? `RM${monthlyAmount} - Ditampung oleh kredit`
+                              : `RM${monthlyAmount} - Belum Dibayar`
+                            }
                           </p>
                           {payment?.paidDate && (
                             <p className="text-xs text-gray-500">
@@ -605,6 +661,8 @@ export const ParticipantDashboard: React.FC = () => {
                         <div className="flex items-center">
                           {isPaid ? (
                             <CheckCircle className="h-6 w-6" style={{ color: colorTheme.primary }} />
+                          ) : isCoveredByCredit ? (
+                            <CheckCircle className="h-6 w-6 text-green-600" />
                           ) : (
                             <XCircle className="h-6 w-6 text-gray-400" />
                           )}

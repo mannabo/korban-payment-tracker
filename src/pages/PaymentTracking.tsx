@@ -6,9 +6,11 @@ import {
   Group, 
   Participant, 
   Payment,
+  ParticipantCredit,
   KORBAN_MONTHLY_AMOUNT,
   getParticipantPrice 
 } from '../types';
+import CreditService from '../utils/creditService';
 import { 
   subscribeToGroups, 
   subscribeToAllParticipants, 
@@ -37,6 +39,8 @@ interface PaymentRecord {
   paidDate?: string;
   amount: number;
   paymentId?: string;
+  creditBalance?: number;
+  isCoveredByCredit?: boolean;
 }
 
 const PaymentTracking: React.FC = () => {
@@ -51,9 +55,11 @@ const PaymentTracking: React.FC = () => {
   const [selectedParticipants, setSelectedParticipants] = useState<Set<string>>(new Set());
   const [bulkOperationLoading, setBulkOperationLoading] = useState(false);
   const [allPayments, setAllPayments] = useState<Payment[]>([]);
+  const [participantCredits, setParticipantCredits] = useState<ParticipantCredit[]>([]);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [showEmailReminders, setShowEmailReminders] = useState(false);
   const { isMobile } = useResponsive();
+  const creditService = CreditService.getInstance();
 
   // Load data with real-time subscriptions
   useEffect(() => {
@@ -70,6 +76,17 @@ const PaymentTracking: React.FC = () => {
       setParticipants(participantsData);
     });
     
+    // Load participant credits
+    const loadCredits = async () => {
+      try {
+        const credits = await creditService.getAllParticipantCredits();
+        setParticipantCredits(credits);
+      } catch (error) {
+        console.warn('Unable to load credit data:', error);
+      }
+    };
+    
+    loadCredits();
     setLoading(false);
     
     return () => {
@@ -119,6 +136,12 @@ const PaymentTracking: React.FC = () => {
   const paymentRecords: PaymentRecord[] = participants.map(participant => {
     const group = groups.find(g => g.id === participant.groupId);
     const payment = payments.find(p => p.participantId === participant.id);
+    const credit = participantCredits.find(c => c.participantId === participant.id);
+    const creditBalance = credit?.creditBalance || 0;
+    
+    // Check if this month is covered by credit
+    const isCoveredByCredit = creditBalance >= 100 && 
+      creditService.getNextUnpaidMonth(creditBalance, selectedMonth, MONTHS) !== selectedMonth;
     
     return {
       participantId: participant.id,
@@ -128,7 +151,9 @@ const PaymentTracking: React.FC = () => {
       isPaid: payment?.isPaid || false,
       paidDate: payment?.paidDate ? payment.paidDate.toISOString().split('T')[0] : undefined,
       amount: getParticipantPrice(participant.sacrificeType || 'korban_sunat'),
-      paymentId: payment?.id
+      paymentId: payment?.id,
+      creditBalance,
+      isCoveredByCredit
     };
   });
 
@@ -874,6 +899,7 @@ const PaymentTracking: React.FC = () => {
                 <th>Kumpulan</th>
                 <th>Jumlah</th>
                 <th>Status</th>
+                <th>Baki Kredit</th>
                 <th>Tarikh Bayar</th>
                 <th>Tindakan</th>
               </tr>
@@ -935,9 +961,28 @@ const PaymentTracking: React.FC = () => {
                       RM{record.amount}
                     </td>
                     <td>
-                      <span className={record.isPaid ? 'status-paid' : 'status-pending'}>
-                        {record.isPaid ? 'Sudah Bayar' : 'Belum Bayar'}
+                      <span className={record.isPaid || record.isCoveredByCredit ? 'status-paid' : 'status-pending'}>
+                        {record.isPaid 
+                          ? 'Sudah Bayar' 
+                          : record.isCoveredByCredit 
+                          ? 'Kredit' 
+                          : 'Belum Bayar'
+                        }
                       </span>
+                    </td>
+                    <td style={{ 
+                      color: (record.creditBalance || 0) > 0 ? '#047857' : '#6b7280',
+                      fontWeight: (record.creditBalance || 0) > 0 ? '600' : 'normal',
+                      fontSize: '14px'
+                    }}>
+                      {(record.creditBalance || 0) > 0 ? (
+                        <span>
+                          RM{record.creditBalance || 0}
+                          <span style={{ display: 'block', fontSize: '11px', color: '#059669' }}>
+                            {creditService.calculatePrepaidMonths(record.creditBalance || 0)} bulan
+                          </span>
+                        </span>
+                      ) : '-'}
                     </td>
                     <td style={{ color: '#6b7280' }}>
                       {record.paidDate || '-'}

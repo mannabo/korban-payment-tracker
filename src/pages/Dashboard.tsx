@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Users, DollarSign, TrendingUp } from 'lucide-react';
+import { Users, DollarSign, TrendingUp, CreditCard } from 'lucide-react';
 import { 
   MONTHS, 
   MONTH_LABELS, 
   Group, 
   Participant, 
   Payment,
+  ParticipantCredit,
   getParticipantPrice 
 } from '../types';
 import { subscribeToGroups, subscribeToAllParticipants, subscribeToPayments } from '../utils/firestore';
+import CreditService from '../utils/creditService';
 import { smartSortGroups } from '../utils/sorting';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { analyzePaymentData, generateDataReport } from '../utils/dataCleanup';
@@ -18,12 +20,16 @@ const Dashboard: React.FC = () => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [allPayments, setAllPayments] = useState<Payment[]>([]);
+  const [participantCredits, setParticipantCredits] = useState<ParticipantCredit[]>([]);
   const [dataIssues, setDataIssues] = useState<number>(0);
+  const creditService = CreditService.getInstance();
   const [stats, setStats] = useState({
     totalGroups: 0,
     totalParticipants: 0,
     totalCollected: 0,
     totalExpected: 0,
+    totalCreditBalance: 0,
+    participantsWithCredit: 0,
     currentMonth: '2025-08'
   });
 
@@ -107,6 +113,26 @@ const Dashboard: React.FC = () => {
       paymentUnsubscribers.push(unsubscribe);
     });
     
+    // Load participant credits
+    const loadCredits = async () => {
+      try {
+        const credits = await creditService.getAllParticipantCredits();
+        setParticipantCredits(credits);
+        
+        const totalCreditBalance = credits.reduce((sum, credit) => sum + credit.creditBalance, 0);
+        const participantsWithCredit = credits.filter(credit => credit.creditBalance > 0).length;
+        
+        setStats(prev => ({
+          ...prev,
+          totalCreditBalance,
+          participantsWithCredit
+        }));
+      } catch (error) {
+        console.warn('Unable to load credit data:', error);
+      }
+    };
+    
+    loadCredits();
     setLoading(false);
     
     // Cleanup subscriptions
@@ -221,7 +247,7 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-4" style={{ marginBottom: '32px' }}>
+      <div className="grid grid-cols-5" style={{ marginBottom: '32px', gap: '20px' }}>
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
@@ -269,9 +295,24 @@ const Dashboard: React.FC = () => {
             <TrendingUp size={40} style={{ color: '#059669' }} />
           </div>
         </div>
+        
+        <div className="card" style={{ border: '2px solid #10b981', background: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <p style={{ color: '#047857', fontSize: '14px', fontWeight: '600' }}>Total Baki Kredit</p>
+              <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#047857', marginBottom: '4px' }}>
+                RM{stats.totalCreditBalance.toLocaleString()}
+              </p>
+              <p style={{ color: '#059669', fontSize: '12px', fontWeight: '500' }}>
+                {stats.participantsWithCredit} peserta dengan kredit
+              </p>
+            </div>
+            <CreditCard size={36} style={{ color: '#10b981' }} />
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2">
+      <div className="grid grid-cols-3">
         <div className="card">
           <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>
             Progress Bulanan
@@ -330,6 +371,57 @@ const Dashboard: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+        
+        <div className="card" style={{ borderTop: '4px solid #10b981' }}>
+          <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600', color: '#047857' }}>
+            Baki Kredit Peserta
+          </h3>
+          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            {participantCredits
+              .filter(credit => credit.creditBalance > 0)
+              .sort((a, b) => b.creditBalance - a.creditBalance)
+              .map((credit) => {
+                const participant = participants.find(p => p.id === credit.participantId);
+                const prepaidMonths = creditService.calculatePrepaidMonths(credit.creditBalance);
+                
+                return (
+                  <div 
+                    key={credit.participantId}
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      padding: '12px 0',
+                      borderBottom: '1px solid #e5e7eb'
+                    }}
+                  >
+                    <div>
+                      <p style={{ fontWeight: '500' }}>{participant?.name || 'Unknown'}</p>
+                      <p style={{ fontSize: '14px', color: '#059669', fontWeight: '500' }}>
+                        {prepaidMonths} bulan hadapan
+                      </p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ fontWeight: '600', color: '#047857', fontSize: '16px' }}>
+                        RM{credit.creditBalance}
+                      </p>
+                      <p style={{ fontSize: '12px', color: '#6b7280' }}>
+                        {credit.transactions.length} transaksi
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            
+            {participantCredits.filter(credit => credit.creditBalance > 0).length === 0 && (
+              <div style={{ textAlign: 'center', color: '#6b7280', padding: '40px 20px' }}>
+                <CreditCard size={48} style={{ color: '#d1d5db', margin: '0 auto 16px auto' }} />
+                <p style={{ fontSize: '16px', fontWeight: '500' }}>Tiada Baki Kredit</p>
+                <p style={{ fontSize: '14px' }}>Semua peserta telah menggunakan kredit mereka</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

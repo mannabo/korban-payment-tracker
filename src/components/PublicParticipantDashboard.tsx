@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getPaymentsByParticipant, getAllParticipants, getGroup, getParticipantsByGroup, createChangeRequest, createAuditLog, getChangeRequestsByParticipant } from '../utils/firestore';
-import { Payment, Participant, Group, MONTHS, MONTH_LABELS, getParticipantPrice, ParticipantChangeRequest, SacrificeType, SACRIFICE_TYPE_LABELS, SACRIFICE_TYPE_DESCRIPTIONS, getSacrificeTypeColors } from '../types';
+import { Payment, Participant, Group, MONTHS, MONTH_LABELS, getParticipantPrice, ParticipantChangeRequest, SacrificeType, SACRIFICE_TYPE_LABELS, SACRIFICE_TYPE_DESCRIPTIONS, getSacrificeTypeColors, ParticipantCredit } from '../types';
+import CreditService from '../utils/creditService';
 import LoadingSpinner from './LoadingSpinner';
 import { GroupProgressView } from './GroupProgressView';
 import { CheckCircle, XCircle, Calendar, Users, DollarSign, TrendingUp, Eye, ArrowLeft, User, Edit3, Clock, AlertCircle, Upload } from 'lucide-react';
@@ -30,6 +31,8 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReceiptUpload, setShowReceiptUpload] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [credit, setCredit] = useState<ParticipantCredit | null>(null);
+  const creditService = CreditService.getInstance();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -72,6 +75,16 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
             console.warn('Unable to load change requests, permissions may be missing:', requestError);
             // Continue without change requests - not critical for basic functionality
             setPendingRequests([]);
+          }
+          
+          // Get participant credit balance (with fallback)
+          try {
+            const participantCredit = await creditService.getParticipantCredit(currentParticipant.id);
+            setCredit(participantCredit);
+          } catch (creditError) {
+            console.warn('Unable to load credit balance:', creditError);
+            // Continue without credit balance - not critical for basic functionality
+            setCredit(null);
           }
         }
       } catch (err) {
@@ -159,8 +172,10 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
   const totalPaid = payments.filter(p => p.isPaid).reduce((sum, p) => sum + p.amount, 0);
   const monthlyAmount = participant ? getParticipantPrice(participant.sacrificeType || 'korban_sunat') : 100;
   const totalRequired = monthlyAmount * 8; // 8 months total
-  const progressPercentage = (totalPaid / totalRequired) * 100;
-  const remainingAmount = totalRequired - totalPaid;
+  const creditBalance = credit?.creditBalance || 0;
+  const totalValue = totalPaid + creditBalance; // Include credit in total value
+  const progressPercentage = (totalValue / totalRequired) * 100;
+  const remainingAmount = Math.max(0, totalRequired - totalValue); // Can't be negative with credit
   
   // Get color theme based on sacrifice type
   const colorTheme = participant ? getSacrificeTypeColors(participant.sacrificeType || 'korban_sunat') : getSacrificeTypeColors('korban_sunat');
@@ -951,13 +966,24 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                       color: '#6b7280',
                       marginBottom: '0.5rem',
                       fontFamily: "'Inter', sans-serif"
-                    }}>Total Dibayar</p>
+                    }}>Total Nilai</p>
                     <p style={{
                       fontSize: '2rem',
                       fontWeight: 'bold',
                       color: '#16a34a',
-                      fontFamily: "'Inter', sans-serif"
-                    }}>RM{totalPaid}</p>
+                      fontFamily: "'Inter', sans-serif",
+                      marginBottom: '0.25rem'
+                    }}>RM{totalValue}</p>
+                    {creditBalance > 0 && (
+                      <p style={{
+                        fontSize: '0.75rem',
+                        color: '#059669',
+                        fontFamily: "'Inter', sans-serif",
+                        fontWeight: '500'
+                      }}>
+                        RM{totalPaid} bayaran + RM{creditBalance} kredit
+                      </p>
+                    )}
                   </div>
                   <DollarSign size={32} style={{ color: '#16a34a' }} />
                 </div>
@@ -1040,6 +1066,46 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                   <Users size={32} style={{ color: '#7c3aed' }} />
                 </div>
               </div>
+              
+              {/* Credit Balance Card */}
+              {credit && credit.creditBalance > 0 && (
+                <div style={{
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                  padding: '1.5rem',
+                  border: '2px solid #10b981',
+                  background: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <p style={{
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        color: '#059669',
+                        marginBottom: '0.5rem',
+                        fontFamily: "'Inter', sans-serif"
+                      }}>Baki Kredit</p>
+                      <p style={{
+                        fontSize: '2rem',
+                        fontWeight: 'bold',
+                        color: '#047857',
+                        fontFamily: "'Inter', sans-serif",
+                        marginBottom: '0.25rem'
+                      }}>RM{credit.creditBalance}</p>
+                      <p style={{
+                        fontSize: '0.75rem',
+                        color: '#059669',
+                        fontFamily: "'Inter', sans-serif",
+                        fontWeight: '500'
+                      }}>
+                        {creditService.calculatePrepaidMonths(credit.creditBalance)} bulan bayaran hadapan
+                      </p>
+                    </div>
+                    <CheckCircle size={32} style={{ color: '#10b981' }} />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Progress Bar */}
@@ -1092,7 +1158,14 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                 fontFamily: "'Inter', sans-serif"
               }}>
                 <span>RM0</span>
-                <span style={{ fontWeight: '500' }}>RM{totalPaid} / RM{totalRequired}</span>
+                <span style={{ fontWeight: '500' }}>
+                  RM{totalValue} / RM{totalRequired}
+                  {creditBalance > 0 && (
+                    <span style={{ color: '#059669', fontSize: '0.75rem', display: 'block' }}>
+                      (Termasuk RM{creditBalance} kredit)
+                    </span>
+                  )}
+                </span>
                 <span>RM{totalRequired}</span>
               </div>
             </div>
@@ -1127,6 +1200,10 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                   const isPaid = payment?.isPaid || false;
                   const amount = payment?.amount || 0;
                   
+                  // Check if this month is covered by credit
+                  const isCoveredByCredit = credit && credit.creditBalance >= 100 && 
+                    creditService.getNextUnpaidMonth(credit.creditBalance, month, MONTHS) !== month;
+                  
                   // Get sacrifice type colors for paid months
                   const sacrificeType = participant?.sacrificeType || 'korban_sunat';
                   const colorTheme = getSacrificeTypeColors(sacrificeType);
@@ -1135,10 +1212,10 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                     <div 
                       key={month}
                       style={{
-                        border: `2px solid ${isPaid ? colorTheme.border : '#e5e7eb'}`,
+                        border: `2px solid ${isPaid ? colorTheme.border : isCoveredByCredit ? '#10b981' : '#e5e7eb'}`,
                         borderRadius: '8px',
                         padding: '1rem',
-                        backgroundColor: isPaid ? colorTheme.light : '#f9fafb'
+                        backgroundColor: isPaid ? colorTheme.light : isCoveredByCredit ? '#ecfdf5' : '#f9fafb'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1153,11 +1230,17 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                           </h3>
                           <p style={{
                             fontSize: '0.875rem',
-                            color: '#6b7280',
+                            color: isPaid ? '#6b7280' : isCoveredByCredit ? '#047857' : '#6b7280',
                             marginBottom: '0.25rem',
-                            fontFamily: "'Inter', sans-serif"
+                            fontFamily: "'Inter', sans-serif",
+                            fontWeight: isCoveredByCredit ? '600' : 'normal'
                           }}>
-                            {isPaid ? `RM${amount}` : `RM${monthlyAmount} - Belum Dibayar`}
+                            {isPaid 
+                              ? `RM${amount}` 
+                              : isCoveredByCredit 
+                              ? `RM${monthlyAmount} - Ditampung oleh kredit`
+                              : `RM${monthlyAmount} - Belum Dibayar`
+                            }
                           </p>
                           {payment?.paidDate && (
                             <p style={{
@@ -1172,6 +1255,8 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {isPaid ? (
                             <CheckCircle size={24} style={{ color: colorTheme.primary }} />
+                          ) : isCoveredByCredit ? (
+                            <CheckCircle size={24} style={{ color: '#10b981' }} />
                           ) : (
                             <>
                               <XCircle size={24} style={{ color: '#9ca3af' }} />
