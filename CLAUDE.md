@@ -300,12 +300,19 @@ Credit-Only Flow:
 4. **Add participant self-service payment upload** (receipt photos) ✅ COMPLETED
 5. **PDF upload support for payment receipts** ✅ COMPLETED
 
+### UI Consistency Fixes - JULY 2025 ✅ COMPLETED
+6. **Fixed "Ditampung oleh kredit" UI inconsistency** ✅ COMPLETED (July 22, 2025)
+   - Removed outdated "covered by credit" status display from participant dashboard
+   - Updated PaymentTracking to show only "Sudah Bayar" or "Belum Bayar" statuses  
+   - Aligned UI with auto-conversion business logic documented in Phase 9
+   - **Result**: UI now correctly reflects that credits auto-convert to payment records
+
 ### Medium Priority (Management Features) - NEXT PHASE
-6. Create comprehensive reporting dashboard with charts
-7. Add payment history tracking and audit logs
-8. Implement role-based permissions (admin/treasurer/viewer)
-9. Add WhatsApp integration for payment notifications
-10. Create participant QR codes for easy payment tracking
-11. Implement receipt-to-payment auto-creation workflow
-12. Add receipt upload notifications for admins
-13. Create monthly/yearly receipt reports and analytics
+7. Create comprehensive reporting dashboard with charts
+8. Add payment history tracking and audit logs
+9. Implement role-based permissions (admin/treasurer/viewer)
+10. Add WhatsApp integration for payment notifications
+11. Create participant QR codes for easy payment tracking
+12. Implement receipt-to-payment auto-creation workflow
+13. Add receipt upload notifications for admins
+14. Create monthly/yearly receipt reports and analytics

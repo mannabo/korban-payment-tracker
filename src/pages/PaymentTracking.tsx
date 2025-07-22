@@ -139,10 +139,6 @@ const PaymentTracking: React.FC = () => {
     const credit = participantCredits.find(c => c.participantId === participant.id);
     const creditBalance = credit?.creditBalance || 0;
     
-    // Check if this month is covered by credit
-    const isCoveredByCredit = creditBalance >= 100 && 
-      creditService.getNextUnpaidMonth(creditBalance, selectedMonth, MONTHS) !== selectedMonth;
-    
     return {
       participantId: participant.id,
       participantName: participant.name,
@@ -153,7 +149,7 @@ const PaymentTracking: React.FC = () => {
       amount: getParticipantPrice(participant.sacrificeType || 'korban_sunat'),
       paymentId: payment?.id,
       creditBalance,
-      isCoveredByCredit
+      isCoveredByCredit: false // Keep for interface compatibility but always false
     };
   });
 
@@ -961,11 +957,9 @@ const PaymentTracking: React.FC = () => {
                       RM{record.amount}
                     </td>
                     <td>
-                      <span className={record.isPaid || record.isCoveredByCredit ? 'status-paid' : 'status-pending'}>
+                      <span className={record.isPaid ? 'status-paid' : 'status-pending'}>
                         {record.isPaid 
                           ? 'Sudah Bayar' 
-                          : record.isCoveredByCredit 
-                          ? 'Kredit' 
                           : 'Belum Bayar'
                         }
                       </span>

@@ -1200,10 +1200,6 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                   const isPaid = payment?.isPaid || false;
                   const amount = payment?.amount || 0;
                   
-                  // Check if this month is covered by credit
-                  const isCoveredByCredit = credit && credit.creditBalance >= 100 && 
-                    creditService.getNextUnpaidMonth(credit.creditBalance, month, MONTHS) !== month;
-                  
                   // Get sacrifice type colors for paid months
                   const sacrificeType = participant?.sacrificeType || 'korban_sunat';
                   const colorTheme = getSacrificeTypeColors(sacrificeType);
@@ -1212,10 +1208,10 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                     <div 
                       key={month}
                       style={{
-                        border: `2px solid ${isPaid ? colorTheme.border : isCoveredByCredit ? '#10b981' : '#e5e7eb'}`,
+                        border: `2px solid ${isPaid ? colorTheme.border : '#e5e7eb'}`,
                         borderRadius: '8px',
                         padding: '1rem',
-                        backgroundColor: isPaid ? colorTheme.light : isCoveredByCredit ? '#ecfdf5' : '#f9fafb'
+                        backgroundColor: isPaid ? colorTheme.light : '#f9fafb'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1230,15 +1226,13 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                           </h3>
                           <p style={{
                             fontSize: '0.875rem',
-                            color: isPaid ? '#6b7280' : isCoveredByCredit ? '#047857' : '#6b7280',
+                            color: isPaid ? '#6b7280' : '#6b7280',
                             marginBottom: '0.25rem',
                             fontFamily: "'Inter', sans-serif",
-                            fontWeight: isCoveredByCredit ? '600' : 'normal'
+                            fontWeight: 'normal'
                           }}>
                             {isPaid 
                               ? `RM${amount}` 
-                              : isCoveredByCredit 
-                              ? `RM${monthlyAmount} - Ditampung oleh kredit`
                               : `RM${monthlyAmount} - Belum Dibayar`
                             }
                           </p>
@@ -1255,8 +1249,6 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {isPaid ? (
                             <CheckCircle size={24} style={{ color: colorTheme.primary }} />
-                          ) : isCoveredByCredit ? (
-                            <CheckCircle size={24} style={{ color: '#10b981' }} />
                           ) : (
                             <>
                               <XCircle size={24} style={{ color: '#9ca3af' }} />

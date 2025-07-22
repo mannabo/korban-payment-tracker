@@ -614,9 +614,9 @@ export const ParticipantDashboard: React.FC = () => {
                   const isPaid = payment?.isPaid || false;
                   const amount = payment?.amount || 0;
                   
-                  // Check if this month is covered by credit
-                  const isCoveredByCredit = credit && credit.creditBalance >= 100 && 
-                    creditService.getNextUnpaidMonth(credit.creditBalance, month, MONTHS) !== month;
+                  // Auto-conversion handles credit >= RM100, so no "covered by credit" logic needed
+                  // Credit balance now only represents amounts less than RM100 
+                  const isCoveredByCredit = false; // Disabled: Auto-conversion makes this obsolete
                   
                   // Get sacrifice type colors for paid months
                   const sacrificeType = participant?.sacrificeType || 'korban_sunat';
