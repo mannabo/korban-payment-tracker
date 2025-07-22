@@ -9,10 +9,15 @@ service firebase.storage {
       allow read: if true;
       
       // Allow write (upload) for ALL users - anonymous participants can upload receipts
-      // File size limit: 5MB, only images
+      // File size limit: Images 5MB, PDF 10MB
       allow write: if resource == null // Only for new uploads
-        && request.resource.size < 5 * 1024 * 1024 // 5MB limit
-        && request.resource.contentType.matches('image/.*');
+        && (
+          // Images up to 5MB
+          (request.resource.contentType.matches('image/.*') && request.resource.size < 5 * 1024 * 1024)
+          ||
+          // PDF files up to 10MB
+          (request.resource.contentType == 'application/pdf' && request.resource.size < 10 * 1024 * 1024)
+        );
     }
     
     // Allow read access for admin users to all files
