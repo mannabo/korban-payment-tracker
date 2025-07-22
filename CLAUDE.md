@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build` - Build for production (runs TypeScript compilation + Vite build)
 - `npm run preview` - Preview production build locally
 - `npm run lint` - Run ESLint for code quality checks
+- **IMPORTANT**: Always run `npm run lint` after making code changes before committing
 
 ### Deployment Process ⭐ IMPORTANT ⭐
 - **Hosting Provider**: Hostinger (NOT Firebase!)
@@ -104,6 +105,9 @@ This is a **React + TypeScript + Firebase** web application for managing korban 
 - **Firestore utilities** in `src/utils/firestore.ts` for all database operations
 - **Consistent naming**: Use Malaysian/Malay terms in UI (e.g., "Peserta", "Kumpulan")
 - **Payment calculations**: Always use monthly constants, not hardcoded values
+- **Import organization**: Follow existing patterns - React/external imports first, then local imports
+- **Component structure**: Functional components with TypeScript, hooks pattern throughout
+- **Error handling**: Always include try-catch blocks for Firebase operations
 
 ### Firebase Security
 - Firestore security rules configured (`firestore.rules`)
@@ -115,6 +119,12 @@ This is a **React + TypeScript + Firebase** web application for managing korban 
 - **Real-time updates** throughout the application via Firebase subscriptions
 - **Defensive error handling** with fallbacks for permission-denied scenarios
 - **Audit trail** for all data modifications with user attribution
+
+### Testing and Quality Assurance
+- **Manual testing** required for all payment-related features
+- **Cross-browser testing** on mobile devices essential for public portal
+- **Data validation** must be thorough for payment amounts and participant information
+- **Firebase security rules** should be tested with different user roles
 
 ### Payment Formula Migration Notes
 Recent change: Monthly payment amount changed from RM800 to RM100 per month. When working on payment-related features:
@@ -315,12 +325,66 @@ Credit-Only Flow:
    - File type detection (PDF/Image) with appropriate icons
    - **Result**: Participants can now track their receipt submissions and approval status
 
-### Medium Priority (Management Features) - NEXT PHASE
-8. Create comprehensive reporting dashboard with charts
-9. Add payment history tracking and audit logs
-10. Implement role-based permissions (admin/treasurer/viewer)
-11. Add WhatsApp integration for payment notifications
-12. Create participant QR codes for easy payment tracking
-13. Implement receipt-to-payment auto-creation workflow
-14. Add receipt upload notifications for admins
-15. Create monthly/yearly receipt reports and analytics
+## SUGGESTED NEXT PHASES
+
+### PHASE 10 - Analytics & Reporting Dashboard (RECOMMENDED) 📊
+**Priority**: High - Data-driven decision making for program management
+
+**Core Features:**
+- **Payment Analytics Dashboard**: Visual charts showing payment trends, monthly collection rates, and progress tracking
+- **Group Performance Comparison**: Interactive charts comparing payment completion across different groups
+- **Outstanding Payment Reports**: Automated reports highlighting overdue payments and at-risk participants
+- **Progress Distribution Analysis**: Visual breakdown of participant payment status distribution
+- **Monthly/Weekly Summary Reports**: Automated report generation for committee meetings
+
+**Implementation Scope:**
+- Chart.js/Recharts integration for interactive visualizations
+- Real-time data visualization with Firebase subscriptions
+- Export functionality for reports (PDF, Excel)
+- Mobile-responsive dashboard for tablet/phone access
+- Administrative insights for program optimization
+
+**Business Impact:**
+- Enable data-driven program management decisions
+- Quick identification of payment collection issues
+- Visual progress reports for stakeholder presentations
+- Early warning system for payment delays
+
+---
+
+### PHASE 11 - Enhanced Receipt Management (ALTERNATIVE) 📄
+**Priority**: High - Operational efficiency improvement
+
+**Core Features:**
+- **Auto-Payment Creation**: Automatic payment record generation from approved receipts
+- **Receipt Notifications**: WhatsApp/Email alerts when receipts are uploaded or processed
+- **Receipt Analytics**: Monthly receipt processing reports and statistics  
+- **Advanced Receipt Search**: Filter by date range, amount, approval status, participant
+- **Batch Receipt Processing**: Bulk approve/reject capabilities with reasons
+
+**Implementation Scope:**
+- Workflow automation for receipt-to-payment conversion
+- Notification system integration (email/WhatsApp API)
+- Advanced filtering and search capabilities
+- Receipt processing analytics and reporting
+- Improved admin workflow efficiency
+
+**Business Impact:**
+- Reduce manual payment entry workload
+- Faster receipt processing and participant feedback
+- Improved receipt processing transparency
+- Enhanced operational efficiency
+
+---
+
+### PHASE 12 - Role-Based Access Control (FUTURE) 👥
+**Priority**: Medium - Advanced security and delegation
+
+**Features**: Multi-level admin permissions (treasurer, viewer, manager), delegation workflows, audit logging
+
+---
+
+### PHASE 13 - Communication Integration (FUTURE) 📱
+**Priority**: Medium - Direct participant communication
+
+**Features**: WhatsApp payment reminders, QR code generation, automated notifications
