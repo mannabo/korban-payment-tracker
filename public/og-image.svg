@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#065f46"/>
+  
+  <!-- Header -->
+  <rect x="0" y="0" width="1200" height="120" fill="#047857"/>
+  
+  <!-- Title -->
+  <text x="600" y="80" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white" text-anchor="middle">
+    Program Korban Perdana
+  </text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="180" font-family="Arial, sans-serif" font-size="32" fill="#d1fae5" text-anchor="middle">
+    Hari Raya Haji 2026
+  </text>
+  
+  <!-- Masjid Name -->
+  <text x="600" y="230" font-family="Arial, sans-serif" font-size="24" fill="#a7f3d0" text-anchor="middle">
+    Masjid Al-Falah Kampung Hang Tuah
+  </text>
+  
+  <!-- Main Features -->
+  <text x="300" y="320" font-family="Arial, sans-serif" font-size="22" fill="white">
+    ✅ Tracking Pembayaran Real-time
+  </text>
+  <text x="300" y="360" font-family="Arial, sans-serif" font-size="22" fill="white">
+    📱 Upload Resit Mudah
+  </text>
+  <text x="300" y="400" font-family="Arial, sans-serif" font-size="22" fill="white">
+    📊 Dashboard Komprehensif
+  </text>
+  <text x="300" y="440" font-family="Arial, sans-serif" font-size="22" fill="white">
+    🔒 Sistem Selamat &amp; Terjamin
+  </text>
+  
+  <!-- Payment Info -->
+  <rect x="650" y="280" width="450" height="200" rx="15" fill="#047857" stroke="#10b981" stroke-width="2"/>
+  <text x="875" y="320" font-family="Arial, sans-serif" font-size="20" fill="#d1fae5" text-anchor="middle">
+    Maklumat Pembayaran
+  </text>
+  <text x="875" y="360" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="white" text-anchor="middle">
+    RM100/bulan
+  </text>
+  <text x="875" y="390" font-family="Arial, sans-serif" font-size="18" fill="#a7f3d0" text-anchor="middle">
+    8 bulan (Aug 2025 - Mar 2026)
+  </text>
+  <text x="875" y="430" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#fbbf24" text-anchor="middle">
+    Total: RM800
+  </text>
+  
+  <!-- Footer -->
+  <text x="600" y="560" font-family="Arial, sans-serif" font-size="20" fill="#a7f3d0" text-anchor="middle">
+    💻 Sistem Tracking Pembayaran Korban Digital
+  </text>
+  
+  <!-- Contact -->
+  <text x="600" y="590" font-family="Arial, sans-serif" font-size="16" fill="#6ee7b7" text-anchor="middle">
+    📞 014-6168216 | 📧 masjid.hangtuahsagil@gmail.com
+  </text>
+</svg>
