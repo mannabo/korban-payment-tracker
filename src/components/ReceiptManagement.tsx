@@ -804,7 +804,36 @@ const ReceiptManagement: React.FC = () => {
       // Create payment records
       const receipt = receipts.find(r => r.id === receiptId);
       if (receipt) {
-        // Determine months to create payments for
+        // Handle credit-only payments (less than RM100)
+        if (receipt.amount < 100) {
+          const confirmation = window.confirm(
+            `Resit telah diluluskan untuk menambah kredit sahaja.\n\n` +
+            `Amount: RM${receipt.amount}\n` +
+            `Action: Tambah ke baki kredit peserta\n\n` +
+            `Tiada bulan akan ditandakan sebagai bayar. Adakah anda ingin meneruskan?`
+          );
+          
+          if (confirmation) {
+            try {
+              await creditService.addPaymentCredit(
+                receipt.participantId,
+                receipt.amount,
+                receipt.id!,
+                `Credit top-up from receipt ${receipt.id}`
+              );
+              
+              alert(`✅ Credit added successfully!\n\nRM${receipt.amount} telah ditambah ke baki kredit peserta.`);
+            } catch (error) {
+              console.error('Error adding credit:', error);
+              alert('❌ Error adding credit. Please try again.');
+            }
+          }
+          
+          setSelectedReceipt(null);
+          return;
+        }
+        
+        // Determine months to create payments for (normal flow)
         const monthsToProcess = selectedMonths && selectedMonths.length > 0 
           ? selectedMonths 
           : [receipt.month];
