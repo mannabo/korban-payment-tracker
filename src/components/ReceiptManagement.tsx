@@ -39,6 +39,7 @@ import {
   createPayment 
 } from '../utils/firestore';
 import ReceiptService from '../utils/receiptService';
+import CreditService from '../utils/creditService';
 import LoadingSpinner from './LoadingSpinner';
 
 interface ExtendedReceiptUpload extends ReceiptUpload {
@@ -721,6 +722,7 @@ const ReceiptManagement: React.FC = () => {
 
   const { user } = useAuthContext();
   const receiptService = ReceiptService.getInstance();
+  const creditService = CreditService.getInstance();
 
   useEffect(() => {
     const unsubscribes: (() => void)[] = [];
@@ -820,39 +822,45 @@ const ReceiptManagement: React.FC = () => {
         );
         
         if (confirmation) {
-          // Create payment records for each selected month
-          // Always use RM100 per month, handle excess/shortage separately
-          const standardAmount = 100;
-          const totalExpected = monthsToProcess.length * standardAmount;
-          const excessAmount = receipt.amount - totalExpected;
-          let successCount = 0;
-          
-          for (let i = 0; i < monthsToProcess.length; i++) {
-            const month = monthsToProcess[i];
-            // For first month, add any excess amount
-            const paymentAmount = i === 0 ? standardAmount + excessAmount : standardAmount;
-            
-            try {
-              await createPayment({
-                participantId: receipt.participantId,
-                month: month,
-                amount: paymentAmount,
-                isPaid: true,
-                paidDate: new Date(),
-                notes: notes || `Multi-month payment via receipt ${receipt.id} (${monthText})${excessAmount !== 0 ? ` | Excess: RM${excessAmount}` : ''}`
-              });
-              successCount++;
-            } catch (error) {
-              console.error(`Error creating payment for ${month}:`, error);
+          try {
+            // Process payment using credit system
+            const result = await creditService.processMultiMonthPayment(
+              receipt.participantId,
+              receipt.amount,
+              monthsToProcess,
+              receipt.id!
+            );
+
+            // Create actual payment records for each month
+            let successCount = 0;
+            for (const month of monthsToProcess) {
+              try {
+                await createPayment({
+                  participantId: receipt.participantId,
+                  month: month,
+                  amount: 100, // Always RM100 per month
+                  isPaid: true,
+                  paidDate: new Date(),
+                  notes: notes || `Monthly payment via receipt ${receipt.id} (Credit System)`
+                });
+                successCount++;
+              } catch (error) {
+                console.error(`Error creating payment for ${month}:`, error);
+              }
             }
-          }
-          
-          if (successCount === monthsToProcess.length) {
-            alert(`✅ ${successCount} rekod pembayaran berjaya dibuat untuk ${monthText}!`);
-          } else if (successCount > 0) {
-            alert(`⚠️ ${successCount}/${monthsToProcess.length} rekod pembayaran berjaya dibuat. Sila semak manual.`);
-          } else {
-            alert('❌ Gagal membuat rekod pembayaran. Sila buat manual.');
+
+            // Show detailed result
+            if (successCount === monthsToProcess.length) {
+              alert(`✅ Payment processed successfully!\n\n${result.summary}\n\nPayments created: ${successCount}/${monthsToProcess.length}`);
+            } else if (successCount > 0) {
+              alert(`⚠️ Partial success: ${successCount}/${monthsToProcess.length} payments created.\n\n${result.summary}\n\nPlease check manually.`);
+            } else {
+              alert(`❌ Failed to create payment records.\n\nCredit was added but payments need manual creation.`);
+            }
+
+          } catch (error) {
+            console.error('Error processing multi-month payment:', error);
+            alert('❌ Error processing payment with credit system. Please try manual approach.');
           }
         }
       }

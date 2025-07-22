@@ -47,6 +47,12 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null; // Only authenticated users (admins) can manage
     }
     
+    // Participant credits - allow public read for credit balance checking, write for authenticated users
+    match /participantCredits/{participantId} {
+      allow read: if true; // Allow public read so participants can see their credit balance
+      allow write: if request.auth != null; // Only authenticated users (admins) can modify credits
+    }
+    
     // All other documents require authentication
     match /{document=**} {
       allow read, write: if request.auth != null;

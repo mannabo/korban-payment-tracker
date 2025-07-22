@@ -91,6 +91,23 @@ export interface ReceiptUpload {
   fileType?: 'image' | 'pdf'; // Track file type for proper display
 }
 
+export interface CreditTransaction {
+  date: Date;
+  amount: number;
+  type: 'payment' | 'usage' | 'adjustment';
+  receiptId?: string;
+  month?: string;
+  description: string;
+}
+
+export interface ParticipantCredit {
+  id?: string;
+  participantId: string;
+  creditBalance: number; // RM amount (positive = overpaid, negative = underpaid)
+  lastUpdated: Date;
+  transactions: CreditTransaction[];
+}
+
 export const MONTHS = [
   '2025-08', '2025-09', '2025-10', '2025-11',
   '2025-12', '2026-01', '2026-02', '2026-03'
