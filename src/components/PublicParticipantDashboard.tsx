@@ -4,8 +4,9 @@ import { Payment, Participant, Group, MONTHS, MONTH_LABELS, getParticipantPrice,
 import CreditService from '../utils/creditService';
 import LoadingSpinner from './LoadingSpinner';
 import { GroupProgressView } from './GroupProgressView';
-import { CheckCircle, XCircle, Calendar, Users, DollarSign, TrendingUp, Eye, ArrowLeft, User, Edit3, Clock, AlertCircle, Upload, FileText, Image as ImageIcon } from 'lucide-react';
+import { CheckCircle, XCircle, Calendar, Users, DollarSign, TrendingUp, Eye, ArrowLeft, User, Edit3, Clock, AlertCircle, Upload, FileText, Image as ImageIcon, QrCode } from 'lucide-react';
 import ReceiptUpload from './ReceiptUpload';
+import QRPayment from './QRPayment';
 
 interface PublicParticipantDashboardProps {
   participantId: string;
@@ -30,6 +31,7 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
   const [pendingRequests, setPendingRequests] = useState<ParticipantChangeRequest[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReceiptUpload, setShowReceiptUpload] = useState(false);
+  const [showQRPayment, setShowQRPayment] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [credit, setCredit] = useState<ParticipantCredit | null>(null);
   const [receiptSubmissions, setReceiptSubmissions] = useState<ReceiptUploadType[]>([]);
@@ -315,6 +317,11 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
   const handleReceiptUpload = (month: string) => {
     setSelectedMonth(month);
     setShowReceiptUpload(true);
+  };
+
+  const handleQRPayment = (month: string) => {
+    setSelectedMonth(month);
+    setShowQRPayment(true);
   };
 
   const handleReceiptUploadSuccess = async () => {
@@ -1273,33 +1280,60 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                           ) : (
                             <>
                               <XCircle size={24} style={{ color: '#9ca3af' }} />
-                              <button
-                                onClick={() => handleReceiptUpload(month)}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  padding: '6px 12px',
-                                  backgroundColor: '#2563eb',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  fontSize: '12px',
-                                  fontWeight: '500',
-                                  fontFamily: "'Inter', sans-serif",
-                                  transition: 'background-color 0.2s'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.backgroundColor = '#1d4ed8';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.backgroundColor = '#2563eb';
-                                }}
-                              >
-                                <Upload size={14} />
-                                Upload Resit
-                              </button>
+                              <div style={{ display: 'flex', gap: '6px' }}>
+                                <button
+                                  onClick={() => handleQRPayment(month)}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '6px 12px',
+                                    backgroundColor: '#059669',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    fontWeight: '500',
+                                    transition: 'background-color 0.2s'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#047857';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#059669';
+                                  }}
+                                >
+                                  <QrCode size={14} />
+                                  Bayar QR
+                                </button>
+                                <button
+                                  onClick={() => handleReceiptUpload(month)}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    padding: '6px 12px',
+                                    backgroundColor: '#2563eb',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    fontWeight: '500',
+                                    transition: 'background-color 0.2s'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#1d4ed8';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#2563eb';
+                                  }}
+                                >
+                                  <Upload size={14} />
+                                  Upload Resit
+                                </button>
+                              </div>
                             </>
                           )}
                         </div>
@@ -1552,6 +1586,19 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
             setSelectedMonth('');
           }}
           onUploadSuccess={handleReceiptUploadSuccess}
+        />
+      )}
+
+      {/* QR Payment Modal */}
+      {showQRPayment && participant && (
+        <QRPayment
+          participantId={participantId}
+          participantName={participant.name}
+          month={selectedMonth}
+          onClose={() => {
+            setShowQRPayment(false);
+            setSelectedMonth('');
+          }}
         />
       )}
     </div>

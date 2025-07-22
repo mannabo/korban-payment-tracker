@@ -8,14 +8,24 @@
   box-sizing: border-box;
 }
 
-/* body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   background-color: #f5f7fa;
   color: #333;
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-} */
+}
+
+/* Consistent font for all elements */
+* {
+  font-family: inherit;
+}
+
+/* Number and code elements use monospace */
+.font-mono {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+}
 
 .container {
   max-width: 1400px;
