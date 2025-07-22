@@ -1280,22 +1280,30 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                           ) : (
                             <>
                               <XCircle size={24} style={{ color: '#9ca3af' }} />
-                              <div style={{ display: 'flex', gap: '6px' }}>
+                              <div style={{ 
+                                display: 'flex', 
+                                gap: '4px',
+                                flexWrap: 'wrap',
+                                justifyContent: 'flex-end',
+                                alignItems: 'center'
+                              }}>
                                 <button
                                   onClick={() => handleQRPayment(month)}
                                   style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '6px 12px',
+                                    gap: '3px',
+                                    padding: '5px 8px',
                                     backgroundColor: '#059669',
                                     color: 'white',
                                     border: 'none',
-                                    borderRadius: '6px',
+                                    borderRadius: '4px',
                                     cursor: 'pointer',
-                                    fontSize: '12px',
+                                    fontSize: '11px',
                                     fontWeight: '500',
-                                    transition: 'background-color 0.2s'
+                                    transition: 'background-color 0.2s',
+                                    minWidth: '68px',
+                                    justifyContent: 'center'
                                   }}
                                   onMouseEnter={(e) => {
                                     e.currentTarget.style.backgroundColor = '#047857';
@@ -1304,24 +1312,26 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                                     e.currentTarget.style.backgroundColor = '#059669';
                                   }}
                                 >
-                                  <QrCode size={14} />
-                                  Bayar QR
+                                  <QrCode size={12} />
+                                  QR
                                 </button>
                                 <button
                                   onClick={() => handleReceiptUpload(month)}
                                   style={{
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '4px',
-                                    padding: '6px 12px',
+                                    gap: '3px',
+                                    padding: '5px 8px',
                                     backgroundColor: '#2563eb',
                                     color: 'white',
                                     border: 'none',
-                                    borderRadius: '6px',
+                                    borderRadius: '4px',
                                     cursor: 'pointer',
-                                    fontSize: '12px',
+                                    fontSize: '11px',
                                     fontWeight: '500',
-                                    transition: 'background-color 0.2s'
+                                    transition: 'background-color 0.2s',
+                                    minWidth: '68px',
+                                    justifyContent: 'center'
                                   }}
                                   onMouseEnter={(e) => {
                                     e.currentTarget.style.backgroundColor = '#1d4ed8';
@@ -1330,8 +1340,8 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                                     e.currentTarget.style.backgroundColor = '#2563eb';
                                   }}
                                 >
-                                  <Upload size={14} />
-                                  Upload Resit
+                                  <Upload size={12} />
+                                  Resit
                                 </button>
                               </div>
                             </>

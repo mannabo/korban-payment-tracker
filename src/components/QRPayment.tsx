@@ -328,8 +328,9 @@ const QRPayment: React.FC<QRPaymentProps> = ({
                 src="/qr-code-masjid.png" 
                 alt="QR Code Masjid Al-Falah Kampung Hang Tuah"
                 style={{
-                  width: '280px',
-                  height: '350px',
+                  width: 'min(240px, calc(100vw - 6rem))',
+                  height: 'min(300px, calc(100vh - 24rem))',
+                  maxWidth: '100%',
                   margin: '0 auto',
                   display: 'block',
                   borderRadius: '8px',
@@ -350,8 +351,9 @@ const QRPayment: React.FC<QRPaymentProps> = ({
               />
               {/* Fallback jika QR image tidak load */}
               <div style={{
-                width: '280px',
-                height: '350px',
+                width: 'min(240px, calc(100vw - 6rem))',
+                height: 'min(300px, calc(100vh - 24rem))',
+                maxWidth: '100%',
                 backgroundColor: 'white',
                 margin: '0 auto',
                 display: 'none',
