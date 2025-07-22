@@ -821,10 +821,17 @@ const ReceiptManagement: React.FC = () => {
         
         if (confirmation) {
           // Create payment records for each selected month
-          const paymentAmount = Math.round(receipt.amount / monthsToProcess.length);
+          // Always use RM100 per month, handle excess/shortage separately
+          const standardAmount = 100;
+          const totalExpected = monthsToProcess.length * standardAmount;
+          const excessAmount = receipt.amount - totalExpected;
           let successCount = 0;
           
-          for (const month of monthsToProcess) {
+          for (let i = 0; i < monthsToProcess.length; i++) {
+            const month = monthsToProcess[i];
+            // For first month, add any excess amount
+            const paymentAmount = i === 0 ? standardAmount + excessAmount : standardAmount;
+            
             try {
               await createPayment({
                 participantId: receipt.participantId,
@@ -832,7 +839,7 @@ const ReceiptManagement: React.FC = () => {
                 amount: paymentAmount,
                 isPaid: true,
                 paidDate: new Date(),
-                notes: notes || `Multi-month payment via receipt ${receipt.id} (${monthText})`
+                notes: notes || `Multi-month payment via receipt ${receipt.id} (${monthText})${excessAmount !== 0 ? ` | Excess: RM${excessAmount}` : ''}`
               });
               successCount++;
             } catch (error) {
