@@ -30,7 +30,8 @@ import { useResponsive } from '../hooks/useResponsive';
 import { 
   Participant, 
   Group, 
-  MONTH_LABELS
+  MONTH_LABELS,
+  MONTHS
 } from '../types';
 import { 
   subscribeToAllParticipants, 
@@ -48,7 +49,7 @@ interface ExtendedReceiptUpload extends ReceiptUpload {
 interface ReceiptPreviewModalProps {
   receipt: ExtendedReceiptUpload;
   onClose: () => void;
-  onApprove: (receiptId: string, reason?: string) => void;
+  onApprove: (receiptId: string, reason?: string, selectedMonths?: string[]) => void;
   onReject: (receiptId: string, reason: string) => void;
   processing: boolean;
 }
@@ -65,10 +66,32 @@ const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
   const [approvalNotes, setApprovalNotes] = useState('');
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const { isMobile } = useResponsive();
 
+  // Calculate suggested months based on payment amount
+  const suggestedMonthCount = Math.floor(receipt.amount / 100);
+  const isMultiMonth = suggestedMonthCount > 1;
+
+  // Initialize suggested months (starting from the receipt month)
+  React.useEffect(() => {
+    if (isMultiMonth) {
+      const startIndex = MONTHS.indexOf(receipt.month);
+      if (startIndex !== -1) {
+        const suggested = MONTHS.slice(startIndex, startIndex + suggestedMonthCount);
+        setSelectedMonths(suggested);
+      }
+    } else {
+      setSelectedMonths([receipt.month]);
+    }
+  }, [receipt.month, isMultiMonth, suggestedMonthCount]);
+
   const handleApprove = () => {
-    onApprove(receipt.id!, approvalNotes.trim() || undefined);
+    if (isMultiMonth && selectedMonths.length > 0) {
+      onApprove(receipt.id!, approvalNotes.trim() || undefined, selectedMonths);
+    } else {
+      onApprove(receipt.id!, approvalNotes.trim() || undefined);
+    }
   };
 
   const handleReject = () => {
@@ -429,6 +452,104 @@ const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
                   />
                 </div>
 
+                {/* Multi-Month Payment Selection */}
+                {isMultiMonth && (
+                  <div style={{
+                    backgroundColor: '#fef3c7',
+                    border: '1px solid #fbbf24',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    marginBottom: '16px'
+                  }}>
+                    <h4 style={{
+                      margin: '0 0 12px 0',
+                      color: '#92400e',
+                      fontSize: '16px',
+                      fontWeight: '600'
+                    }}>
+                      💰 Payment Advanced Detected
+                    </h4>
+                    
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '12px',
+                      flexWrap: 'wrap'
+                    }}>
+                      <span style={{ color: '#92400e', fontSize: '14px' }}>
+                        Amount: <strong>RM{receipt.amount}</strong>
+                      </span>
+                      <span style={{ color: '#92400e', fontSize: '14px' }}>
+                        → Covers <strong>{suggestedMonthCount} months</strong>
+                      </span>
+                      <span style={{ color: '#92400e', fontSize: '14px' }}>
+                        ({suggestedMonthCount} × RM100 = RM{suggestedMonthCount * 100})
+                      </span>
+                    </div>
+
+                    <div style={{
+                      marginBottom: '12px'
+                    }}>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        marginBottom: '8px',
+                        color: '#92400e'
+                      }}>
+                        Select months to mark as paid:
+                      </label>
+                      
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                        gap: '8px'
+                      }}>
+                        {MONTHS.map(month => (
+                          <label
+                            key={month}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              padding: '8px 12px',
+                              backgroundColor: selectedMonths.includes(month) ? '#fbbf24' : '#fffbeb',
+                              border: '1px solid #fbbf24',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              color: selectedMonths.includes(month) ? 'white' : '#92400e'
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedMonths.includes(month)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedMonths([...selectedMonths, month]);
+                                } else {
+                                  setSelectedMonths(selectedMonths.filter(m => m !== month));
+                                }
+                              }}
+                              style={{ margin: 0 }}
+                            />
+                            <span>{MONTH_LABELS[month] || month}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{
+                      fontSize: '13px',
+                      color: '#92400e',
+                      fontStyle: 'italic'
+                    }}>
+                      💡 Tip: Select {suggestedMonthCount} months to fully utilize RM{receipt.amount} payment
+                    </div>
+                  </div>
+                )}
+
                 {/* Action Buttons */}
                 <div style={{
                   display: 'flex',
@@ -670,7 +791,7 @@ const ReceiptManagement: React.FC = () => {
     return true;
   });
 
-  const handleApproveReceipt = async (receiptId: string, notes?: string) => {
+  const handleApproveReceipt = async (receiptId: string, notes?: string, selectedMonths?: string[]) => {
     if (!user?.uid) return;
     
     setProcessingReceiptId(receiptId);
@@ -678,22 +799,54 @@ const ReceiptManagement: React.FC = () => {
     try {
       await receiptService.approveReceipt(receiptId, user.uid);
       
-      // Optionally create payment record
+      // Create payment records
       const receipt = receipts.find(r => r.id === receiptId);
       if (receipt) {
+        // Determine months to create payments for
+        const monthsToProcess = selectedMonths && selectedMonths.length > 0 
+          ? selectedMonths 
+          : [receipt.month];
+        
+        const isMultiMonth = monthsToProcess.length > 1;
+        const monthText = isMultiMonth 
+          ? `${monthsToProcess.length} bulan (${monthsToProcess.map(m => MONTH_LABELS[m] || m).join(', ')})`
+          : `${MONTH_LABELS[monthsToProcess[0]] || monthsToProcess[0]}`;
+        
         const confirmation = window.confirm(
-          'Resit telah diluluskan. Adakah anda ingin membuat rekod pembayaran secara automatik?'
+          `Resit telah diluluskan untuk pembayaran ${monthText}.\n\n` +
+          `Amount: RM${receipt.amount}\n` +
+          `Months: ${monthText}\n\n` +
+          `Adakah anda ingin membuat rekod pembayaran secara automatik?`
         );
         
         if (confirmation) {
-          await createPayment({
-            participantId: receipt.participantId,
-            month: receipt.month,
-            amount: receipt.amount,
-            isPaid: true,
-            paidDate: new Date(),
-            notes: notes || `Diluluskan melalui resit upload - ${receipt.id}`
-          });
+          // Create payment records for each selected month
+          const paymentAmount = Math.round(receipt.amount / monthsToProcess.length);
+          let successCount = 0;
+          
+          for (const month of monthsToProcess) {
+            try {
+              await createPayment({
+                participantId: receipt.participantId,
+                month: month,
+                amount: paymentAmount,
+                isPaid: true,
+                paidDate: new Date(),
+                notes: notes || `Multi-month payment via receipt ${receipt.id} (${monthText})`
+              });
+              successCount++;
+            } catch (error) {
+              console.error(`Error creating payment for ${month}:`, error);
+            }
+          }
+          
+          if (successCount === monthsToProcess.length) {
+            alert(`✅ ${successCount} rekod pembayaran berjaya dibuat untuk ${monthText}!`);
+          } else if (successCount > 0) {
+            alert(`⚠️ ${successCount}/${monthsToProcess.length} rekod pembayaran berjaya dibuat. Sila semak manual.`);
+          } else {
+            alert('❌ Gagal membuat rekod pembayaran. Sila buat manual.');
+          }
         }
       }
       
