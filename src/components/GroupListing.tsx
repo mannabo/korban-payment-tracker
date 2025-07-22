@@ -826,7 +826,7 @@ export const GroupListing: React.FC<GroupListingProps> = ({ onParticipantSelecte
             fontFamily: "'Inter', sans-serif",
             margin: 0
           }}>
-            🎉 <strong>Live Database</strong> - Real-time payment indicators from Firebase
+            🎉 <strong>Live Database</strong> - Real-time payment indicators
           </p>
         </div>
 
