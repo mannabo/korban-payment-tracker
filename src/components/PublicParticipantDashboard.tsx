@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { getPaymentsByParticipant, getAllParticipants, getGroup, getParticipantsByGroup, createChangeRequest, createAuditLog, getChangeRequestsByParticipant } from '../utils/firestore';
-import { Payment, Participant, Group, MONTHS, MONTH_LABELS, getParticipantPrice, ParticipantChangeRequest, SacrificeType, SACRIFICE_TYPE_LABELS, SACRIFICE_TYPE_DESCRIPTIONS, getSacrificeTypeColors, ParticipantCredit } from '../types';
+import { getPaymentsByParticipant, getAllParticipants, getGroup, getParticipantsByGroup, createChangeRequest, createAuditLog, getChangeRequestsByParticipant, subscribeToParticipantReceiptSubmissions } from '../utils/firestore';
+import { Payment, Participant, Group, MONTHS, MONTH_LABELS, getParticipantPrice, ParticipantChangeRequest, SacrificeType, SACRIFICE_TYPE_LABELS, SACRIFICE_TYPE_DESCRIPTIONS, getSacrificeTypeColors, ParticipantCredit, ReceiptUpload as ReceiptUploadType } from '../types';
 import CreditService from '../utils/creditService';
 import LoadingSpinner from './LoadingSpinner';
 import { GroupProgressView } from './GroupProgressView';
-import { CheckCircle, XCircle, Calendar, Users, DollarSign, TrendingUp, Eye, ArrowLeft, User, Edit3, Clock, AlertCircle, Upload } from 'lucide-react';
+import { CheckCircle, XCircle, Calendar, Users, DollarSign, TrendingUp, Eye, ArrowLeft, User, Edit3, Clock, AlertCircle, Upload, FileText, Image as ImageIcon } from 'lucide-react';
 import ReceiptUpload from './ReceiptUpload';
 
 interface PublicParticipantDashboardProps {
@@ -32,9 +32,12 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
   const [showReceiptUpload, setShowReceiptUpload] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [credit, setCredit] = useState<ParticipantCredit | null>(null);
+  const [receiptSubmissions, setReceiptSubmissions] = useState<ReceiptUploadType[]>([]);
   const creditService = CreditService.getInstance();
 
   useEffect(() => {
+    let unsubscribeReceipts: (() => void) | null = null;
+    
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -86,6 +89,14 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
             // Continue without credit balance - not critical for basic functionality
             setCredit(null);
           }
+          
+          // Subscribe to receipt submissions for real-time updates
+          unsubscribeReceipts = subscribeToParticipantReceiptSubmissions(
+            currentParticipant.id, 
+            (receipts) => {
+              setReceiptSubmissions(receipts);
+            }
+          );
         }
       } catch (err) {
         setError('Gagal memuat data');
@@ -96,6 +107,13 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
     };
 
     fetchData();
+    
+    // Cleanup function
+    return () => {
+      if (unsubscribeReceipts) {
+        unsubscribeReceipts();
+      }
+    };
   }, [participantId]);
 
   if (loading) {
@@ -304,6 +322,9 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
     try {
       const updatedPayments = await getPaymentsByParticipant(participantId);
       setPayments(updatedPayments);
+      
+      // Note: Receipt submissions will auto-update via subscription
+      // No need to manually refresh receipt submissions
     } catch (error) {
       console.error('Error refreshing payments:', error);
     }
@@ -1287,6 +1308,231 @@ export const PublicParticipantDashboard: React.FC<PublicParticipantDashboardProp
                   );
                 })}
               </div>
+            </div>
+
+            {/* Receipt Submission History */}
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+              padding: '1.5rem',
+              marginTop: '2rem'
+            }}>
+              <h2 style={{
+                fontSize: '1.25rem',
+                fontWeight: '600',
+                marginBottom: '1rem',
+                display: 'flex',
+                alignItems: 'center',
+                color: '#111827',
+                fontFamily: "'Inter', sans-serif"
+              }}>
+                <FileText size={20} style={{ marginRight: '0.5rem' }} />
+                Sejarah Resit Upload
+                {receiptSubmissions.length > 0 && (
+                  <span style={{
+                    marginLeft: '0.5rem',
+                    fontSize: '0.875rem',
+                    backgroundColor: '#e5e7eb',
+                    color: '#374151',
+                    padding: '0.25rem 0.5rem',
+                    borderRadius: '12px',
+                    fontWeight: 'normal'
+                  }}>
+                    {receiptSubmissions.length}
+                  </span>
+                )}
+              </h2>
+              
+              {receiptSubmissions.length === 0 ? (
+                <div style={{
+                  textAlign: 'center',
+                  padding: '2rem',
+                  color: '#6b7280',
+                  backgroundColor: '#f9fafb',
+                  borderRadius: '8px',
+                  border: '1px solid #e5e7eb'
+                }}>
+                  <Upload size={32} style={{ color: '#9ca3af', margin: '0 auto 0.5rem auto' }} />
+                  <p style={{ fontSize: '0.875rem', fontFamily: "'Inter', sans-serif" }}>
+                    Belum ada resit yang dihantar. Upload resit pembayaran pada setiap bulan di atas.
+                  </p>
+                </div>
+              ) : (
+                <div style={{
+                  display: 'grid',
+                  gap: '1rem'
+                }}>
+                  {receiptSubmissions
+                    .sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()) // Latest first
+                    .map(receipt => {
+                      const getStatusDetails = (status: string) => {
+                        switch (status) {
+                          case 'approved':
+                            return {
+                              icon: <CheckCircle size={16} style={{ color: '#059669' }} />,
+                              text: 'Diluluskan',
+                              bgColor: '#ecfdf5',
+                              borderColor: '#10b981',
+                              textColor: '#047857'
+                            };
+                          case 'rejected':
+                            return {
+                              icon: <XCircle size={16} style={{ color: '#dc2626' }} />,
+                              text: 'Ditolak',
+                              bgColor: '#fef2f2',
+                              borderColor: '#ef4444',
+                              textColor: '#dc2626'
+                            };
+                          default: // pending
+                            return {
+                              icon: <Clock size={16} style={{ color: '#f59e0b' }} />,
+                              text: 'Menunggu Kelulusan',
+                              bgColor: '#fef3c7',
+                              borderColor: '#fbbf24',
+                              textColor: '#d97706'
+                            };
+                        }
+                      };
+
+                      const statusDetails = getStatusDetails(receipt.status);
+                      const monthLabel = MONTH_LABELS[receipt.month] || receipt.month;
+
+                      return (
+                        <div 
+                          key={receipt.id}
+                          style={{
+                            border: `2px solid ${statusDetails.borderColor}`,
+                            borderRadius: '8px',
+                            padding: '1rem',
+                            backgroundColor: statusDetails.bgColor
+                          }}
+                        >
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'flex-start',
+                            marginBottom: '0.75rem'
+                          }}>
+                            <div>
+                              <h3 style={{
+                                fontWeight: '600',
+                                color: '#111827',
+                                marginBottom: '0.25rem',
+                                fontFamily: "'Inter', sans-serif",
+                                fontSize: '1rem'
+                              }}>
+                                {monthLabel} - RM{receipt.amount}
+                              </h3>
+                              <p style={{
+                                fontSize: '0.75rem',
+                                color: '#6b7280',
+                                margin: '0',
+                                fontFamily: "'Inter', sans-serif"
+                              }}>
+                                Dihantar: {receipt.uploadDate.toLocaleDateString('ms-MY', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              padding: '0.5rem 0.75rem',
+                              backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                              borderRadius: '6px',
+                              border: `1px solid ${statusDetails.borderColor}`
+                            }}>
+                              {statusDetails.icon}
+                              <span style={{
+                                fontSize: '0.875rem',
+                                fontWeight: '600',
+                                color: statusDetails.textColor,
+                                fontFamily: "'Inter', sans-serif"
+                              }}>
+                                {statusDetails.text}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Additional Details */}
+                          <div style={{ 
+                            fontSize: '0.875rem',
+                            color: '#6b7280',
+                            fontFamily: "'Inter', sans-serif"
+                          }}>
+                            {receipt.status === 'approved' && receipt.approvedDate && (
+                              <p style={{ margin: '0.25rem 0' }}>
+                                ✅ Diluluskan pada: {receipt.approvedDate.toLocaleDateString('ms-MY')}
+                              </p>
+                            )}
+                            
+                            {receipt.status === 'rejected' && receipt.rejectionReason && (
+                              <p style={{ 
+                                margin: '0.25rem 0',
+                                padding: '0.5rem',
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                borderRadius: '4px',
+                                color: '#dc2626'
+                              }}>
+                                ❌ Sebab ditolak: {receipt.rejectionReason}
+                              </p>
+                            )}
+                            
+                            {receipt.notes && (
+                              <p style={{ 
+                                margin: '0.25rem 0',
+                                padding: '0.5rem',
+                                backgroundColor: 'rgba(255, 255, 255, 0.5)',
+                                borderRadius: '4px',
+                                fontStyle: 'italic'
+                              }}>
+                                💬 Catatan: {receipt.notes}
+                              </p>
+                            )}
+
+                            {receipt.status === 'pending' && (
+                              <p style={{ 
+                                margin: '0.25rem 0',
+                                color: '#d97706',
+                                fontSize: '0.75rem'
+                              }}>
+                                ⏳ Resit sedang disemak oleh admin. Anda akan dimaklumkan setelah selesai.
+                              </p>
+                            )}
+                          </div>
+
+                          {/* File Type Indicator */}
+                          <div style={{
+                            marginTop: '0.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                          }}>
+                            {receipt.fileType === 'pdf' ? (
+                              <FileText size={16} style={{ color: '#dc2626' }} />
+                            ) : (
+                              <ImageIcon size={16} style={{ color: '#059669' }} />
+                            )}
+                            <span style={{
+                              fontSize: '0.75rem',
+                              color: '#6b7280',
+                              fontFamily: "'Inter', sans-serif"
+                            }}>
+                              {receipt.fileType === 'pdf' ? 'PDF' : 'Gambar'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
             </div>
           </>
         ) : (

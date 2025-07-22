@@ -12,7 +12,7 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { Group, Participant, Payment, UserRole, ParticipantChangeRequest, AuditLog, SacrificeType } from '../types';
+import { Group, Participant, Payment, UserRole, ParticipantChangeRequest, AuditLog, SacrificeType, ReceiptUpload } from '../types';
 
 // Groups
 export const createGroup = async (groupData: Omit<Group, 'id'>) => {
@@ -489,4 +489,52 @@ export const deleteOrphanedParticipants = async () => {
     console.error('Error cleaning orphaned participants:', error);
     throw error;
   }
+};
+
+// Receipt Submissions
+export const getReceiptSubmissionsByParticipant = async (participantId: string): Promise<ReceiptUpload[]> => {
+  try {
+    const q = query(
+      collection(db, 'receiptUploads'),
+      where('participantId', '==', participantId)
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        uploadDate: data.uploadDate ? data.uploadDate.toDate() : new Date(),
+        approvedDate: data.approvedDate ? data.approvedDate.toDate() : undefined
+      };
+    }) as ReceiptUpload[];
+  } catch (error) {
+    console.error('Error fetching receipt submissions:', error);
+    return []; // Return empty array on error for graceful fallback
+  }
+};
+
+export const subscribeToParticipantReceiptSubmissions = (
+  participantId: string, 
+  callback: (receipts: ReceiptUpload[]) => void
+) => {
+  const q = query(
+    collection(db, 'receiptUploads'),
+    where('participantId', '==', participantId)
+  );
+  
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const receipts = snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        uploadDate: data.uploadDate ? data.uploadDate.toDate() : new Date(),
+        approvedDate: data.approvedDate ? data.approvedDate.toDate() : undefined
+      };
+    }) as ReceiptUpload[];
+    callback(receipts);
+  });
+  
+  return unsubscribe;
 };

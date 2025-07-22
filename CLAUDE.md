@@ -307,12 +307,20 @@ Credit-Only Flow:
    - Aligned UI with auto-conversion business logic documented in Phase 9
    - **Result**: UI now correctly reflects that credits auto-convert to payment records
 
+7. **Receipt Upload History & Status Tracking** ✅ COMPLETED (July 22, 2025)
+   - Added comprehensive receipt submission history in participant dashboard
+   - Real-time status updates showing "Menunggu Kelulusan", "Diluluskan", or "Ditolak"
+   - Detailed approval/rejection information with timestamps and reasons
+   - Visual status indicators with color-coded cards for easy recognition
+   - File type detection (PDF/Image) with appropriate icons
+   - **Result**: Participants can now track their receipt submissions and approval status
+
 ### Medium Priority (Management Features) - NEXT PHASE
-7. Create comprehensive reporting dashboard with charts
-8. Add payment history tracking and audit logs
-9. Implement role-based permissions (admin/treasurer/viewer)
-10. Add WhatsApp integration for payment notifications
-11. Create participant QR codes for easy payment tracking
-12. Implement receipt-to-payment auto-creation workflow
-13. Add receipt upload notifications for admins
-14. Create monthly/yearly receipt reports and analytics
+8. Create comprehensive reporting dashboard with charts
+9. Add payment history tracking and audit logs
+10. Implement role-based permissions (admin/treasurer/viewer)
+11. Add WhatsApp integration for payment notifications
+12. Create participant QR codes for easy payment tracking
+13. Implement receipt-to-payment auto-creation workflow
+14. Add receipt upload notifications for admins
+15. Create monthly/yearly receipt reports and analytics
