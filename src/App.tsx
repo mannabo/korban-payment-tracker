@@ -7,11 +7,10 @@ import { ParticipantDashboard } from './pages/ParticipantDashboard';
 import { StyledPublicPortal } from './pages/StyledPublicPortal';
 import LoginForm from './components/LoginForm';
 import LoadingSpinner from './components/LoadingSpinner';
-import DataDiagnostics from './components/DataDiagnostics';
 // import { TestPage } from './TestPage';
 import { useAuthContext } from './contexts/AuthContext';
 import { useResponsive } from './hooks/useResponsive';
-import { Users, DollarSign, BarChart3, Settings as SettingsIcon, LogOut, Shield, FileText } from 'lucide-react';
+import { Users, DollarSign, BarChart3, Settings as SettingsIcon, LogOut, FileText } from 'lucide-react';
 import ReceiptManagement from './components/ReceiptManagement';
 
 function App() {
@@ -55,7 +54,6 @@ function App() {
     { id: 'groups', label: 'Pengurusan Kumpulan', icon: Users },
     { id: 'payments', label: 'Tracking Bayaran', icon: DollarSign },
     { id: 'receipts', label: 'Pengurusan Resit', icon: FileText },
-    { id: 'diagnostics', label: 'Data Diagnostics', icon: Shield },
     { id: 'settings', label: 'Tetapan', icon: SettingsIcon },
   ];
 
@@ -69,8 +67,6 @@ function App() {
         return <PaymentTracking />;
       case 'receipts':
         return <ReceiptManagement />;
-      case 'diagnostics':
-        return <DataDiagnostics />;
       case 'settings':
         return <Settings />;
       default:
@@ -116,7 +112,7 @@ function App() {
                   fontSize: '14px'
                 }}
               >
-                <Shield size={14} />
+                👥
                 <span style={{ display: isSmallMobile ? 'none' : 'inline' }}>Portal Awam</span>
               </button>
               <button 
