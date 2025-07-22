@@ -22,6 +22,8 @@ const Dashboard: React.FC = () => {
   const [allPayments, setAllPayments] = useState<Payment[]>([]);
   const [participantCredits, setParticipantCredits] = useState<ParticipantCredit[]>([]);
   const [dataIssues, setDataIssues] = useState<number>(0);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isTablet, setIsTablet] = useState(window.innerWidth < 1024);
   const creditService = CreditService.getInstance();
   const [stats, setStats] = useState({
     totalGroups: 0,
@@ -32,6 +34,17 @@ const Dashboard: React.FC = () => {
     participantsWithCredit: 0,
     currentMonth: '2025-08'
   });
+
+  // Handle responsive breakpoints
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      setIsTablet(window.innerWidth < 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -247,86 +260,211 @@ const Dashboard: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-5" style={{ marginBottom: '32px', gap: '20px' }}>
+      {/* Stats Cards - Responsive Grid */}
+      <div style={{ 
+        display: 'grid',
+        gridTemplateColumns: isMobile 
+          ? '1fr' 
+          : isTablet 
+            ? 'repeat(2, 1fr)' 
+            : 'repeat(5, 1fr)',
+        gap: isMobile ? '1rem' : '1.25rem',
+        marginBottom: '2rem'
+      }}>
         <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <p style={{ color: '#6b7280', fontSize: '14px' }}>Jumlah Kumpulan</p>
-              <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#059669' }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            padding: isMobile ? '1rem' : undefined
+          }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ 
+                color: '#6b7280', 
+                fontSize: isMobile ? '12px' : '14px',
+                margin: '0 0 0.5rem 0'
+              }}>
+                Jumlah Kumpulan
+              </p>
+              <p style={{ 
+                fontSize: isMobile ? '24px' : '32px', 
+                fontWeight: 'bold', 
+                color: '#059669',
+                margin: 0
+              }}>
                 {stats.totalGroups}
               </p>
             </div>
-            <Users size={40} style={{ color: '#059669' }} />
+            <Users size={isMobile ? 32 : 40} style={{ color: '#059669' }} />
           </div>
         </div>
 
         <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <p style={{ color: '#6b7280', fontSize: '14px' }}>Jumlah Peserta</p>
-              <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#059669' }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            padding: isMobile ? '1rem' : undefined
+          }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ 
+                color: '#6b7280', 
+                fontSize: isMobile ? '12px' : '14px',
+                margin: '0 0 0.5rem 0'
+              }}>
+                Jumlah Peserta
+              </p>
+              <p style={{ 
+                fontSize: isMobile ? '24px' : '32px', 
+                fontWeight: 'bold', 
+                color: '#059669',
+                margin: 0
+              }}>
                 {stats.totalParticipants}
               </p>
             </div>
-            <Users size={40} style={{ color: '#059669' }} />
+            <Users size={isMobile ? 32 : 40} style={{ color: '#059669' }} />
           </div>
         </div>
 
         <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <p style={{ color: '#6b7280', fontSize: '14px' }}>Jumlah Terkumpul</p>
-              <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#059669' }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            padding: isMobile ? '1rem' : undefined
+          }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ 
+                color: '#6b7280', 
+                fontSize: isMobile ? '12px' : '14px',
+                margin: '0 0 0.5rem 0'
+              }}>
+                Jumlah Terkumpul
+              </p>
+              <p style={{ 
+                fontSize: isMobile ? '20px' : '32px', 
+                fontWeight: 'bold', 
+                color: '#059669',
+                margin: 0,
+                lineHeight: 1.2
+              }}>
                 RM{stats.totalCollected.toLocaleString()}
               </p>
             </div>
-            <DollarSign size={40} style={{ color: '#059669' }} />
+            <DollarSign size={isMobile ? 32 : 40} style={{ color: '#059669' }} />
           </div>
         </div>
 
         <div className="card">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <p style={{ color: '#6b7280', fontSize: '14px' }}>Peratus Pencapaian</p>
-              <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#059669' }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            padding: isMobile ? '1rem' : undefined
+          }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ 
+                color: '#6b7280', 
+                fontSize: isMobile ? '12px' : '14px',
+                margin: '0 0 0.5rem 0'
+              }}>
+                Peratus Pencapaian
+              </p>
+              <p style={{ 
+                fontSize: isMobile ? '24px' : '32px', 
+                fontWeight: 'bold', 
+                color: '#059669',
+                margin: 0
+              }}>
                 {stats.totalExpected > 0 ? Math.round((stats.totalCollected / stats.totalExpected) * 100) : 0}%
               </p>
             </div>
-            <TrendingUp size={40} style={{ color: '#059669' }} />
+            <TrendingUp size={isMobile ? 32 : 40} style={{ color: '#059669' }} />
           </div>
         </div>
         
-        <div className="card" style={{ border: '2px solid #10b981', background: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div>
-              <p style={{ color: '#047857', fontSize: '14px', fontWeight: '600' }}>Total Baki Kredit</p>
-              <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#047857', marginBottom: '4px' }}>
+        <div className="card" style={{ 
+          border: '2px solid #10b981', 
+          background: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            padding: isMobile ? '1rem' : undefined
+          }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ 
+                color: '#047857', 
+                fontSize: isMobile ? '12px' : '14px', 
+                fontWeight: '600',
+                margin: '0 0 0.5rem 0'
+              }}>
+                Total Baki Kredit
+              </p>
+              <p style={{ 
+                fontSize: isMobile ? '20px' : '28px', 
+                fontWeight: 'bold', 
+                color: '#047857', 
+                margin: '0 0 0.25rem 0',
+                lineHeight: 1.2
+              }}>
                 RM{stats.totalCreditBalance.toLocaleString()}
               </p>
-              <p style={{ color: '#059669', fontSize: '12px', fontWeight: '500' }}>
+              <p style={{ 
+                color: '#059669', 
+                fontSize: isMobile ? '10px' : '12px', 
+                fontWeight: '500',
+                margin: 0
+              }}>
                 {stats.participantsWithCredit} peserta dengan kredit
               </p>
             </div>
-            <CreditCard size={36} style={{ color: '#10b981' }} />
+            <CreditCard size={isMobile ? 28 : 36} style={{ color: '#10b981' }} />
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-3">
+      {/* Main Content Sections - Responsive Layout */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)',
+        gap: isMobile ? '1rem' : '1.5rem'
+      }}>
         <div className="card">
-          <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>
+          <h3 style={{ 
+            marginBottom: isMobile ? '1rem' : '1.25rem', 
+            fontSize: isMobile ? '16px' : '18px', 
+            fontWeight: '600',
+            margin: '0 0 1rem 0'
+          }}>
             Progress Bulanan
           </h3>
           {monthlyProgress.map(({ month, collected, expected }) => (
-            <div key={month} style={{ marginBottom: '16px' }}>
+            <div key={month} style={{ 
+              marginBottom: isMobile ? '12px' : '16px',
+              padding: isMobile ? '0.5rem 0' : undefined
+            }}>
               <div style={{ 
                 display: 'flex', 
                 justifyContent: 'space-between', 
-                marginBottom: '8px' 
+                marginBottom: '8px',
+                flexWrap: isMobile ? 'wrap' : 'nowrap',
+                gap: isMobile ? '0.25rem' : '0'
               }}>
-                <span style={{ fontWeight: '500' }}>{MONTH_LABELS[month]}</span>
-                <span style={{ color: '#6b7280' }}>
-                  RM{collected} / RM{expected}
+                <span style={{ 
+                  fontWeight: '500',
+                  fontSize: isMobile ? '14px' : '16px'
+                }}>
+                  {MONTH_LABELS[month]}
+                </span>
+                <span style={{ 
+                  color: '#6b7280',
+                  fontSize: isMobile ? '12px' : '14px',
+                  whiteSpace: 'nowrap'
+                }}>
+                  RM{collected.toLocaleString()} / RM{expected.toLocaleString()}
                 </span>
               </div>
               <div className="progress-bar">
@@ -340,32 +478,66 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="card">
-          <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600' }}>
+          <h3 style={{ 
+            marginBottom: isMobile ? '1rem' : '1.25rem', 
+            fontSize: isMobile ? '16px' : '18px', 
+            fontWeight: '600',
+            margin: '0 0 1rem 0'
+          }}>
             Ringkasan Kumpulan
           </h3>
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          <div style={{ 
+            maxHeight: isMobile ? '300px' : '400px', 
+            overflowY: 'auto' 
+          }}>
             {groupSummary.map((group, index) => (
               <div 
                 key={index}
                 style={{ 
                   display: 'flex', 
                   justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  padding: '12px 0',
-                  borderBottom: '1px solid #e5e7eb'
+                  alignItems: isMobile ? 'flex-start' : 'center',
+                  padding: isMobile ? '8px 0' : '12px 0',
+                  borderBottom: '1px solid #e5e7eb',
+                  gap: isMobile ? '0.5rem' : '1rem'
                 }}
               >
-                <div>
-                  <p style={{ fontWeight: '500' }}>{group.groupName}</p>
-                  <p style={{ fontSize: '14px', color: '#6b7280' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ 
+                    fontWeight: '500',
+                    fontSize: isMobile ? '14px' : '16px',
+                    margin: '0 0 0.25rem 0',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {group.groupName}
+                  </p>
+                  <p style={{ 
+                    fontSize: isMobile ? '12px' : '14px', 
+                    color: '#6b7280',
+                    margin: 0
+                  }}>
                     {group.paidCount}/{group.totalPaymentInstances} pembayaran selesai
                   </p>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <p style={{ fontWeight: '600', color: '#059669' }}>
-                    RM{group.paidAmount}
+                <div style={{ 
+                  textAlign: 'right',
+                  flexShrink: 0
+                }}>
+                  <p style={{ 
+                    fontWeight: '600', 
+                    color: '#059669',
+                    fontSize: isMobile ? '14px' : '16px',
+                    margin: '0 0 0.25rem 0'
+                  }}>
+                    RM{group.paidAmount.toLocaleString()}
                   </p>
-                  <p style={{ fontSize: '14px', color: '#6b7280' }}>
+                  <p style={{ 
+                    fontSize: isMobile ? '12px' : '14px', 
+                    color: '#6b7280',
+                    margin: 0
+                  }}>
                     {group.totalPaymentInstances > 0 ? Math.round((group.paidCount / group.totalPaymentInstances) * 100) : 0}%
                   </p>
                 </div>
@@ -375,10 +547,19 @@ const Dashboard: React.FC = () => {
         </div>
         
         <div className="card" style={{ borderTop: '4px solid #10b981' }}>
-          <h3 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '600', color: '#047857' }}>
+          <h3 style={{ 
+            marginBottom: isMobile ? '1rem' : '1.25rem', 
+            fontSize: isMobile ? '16px' : '18px', 
+            fontWeight: '600', 
+            color: '#047857',
+            margin: '0 0 1rem 0'
+          }}>
             Baki Kredit Peserta
           </h3>
-          <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          <div style={{ 
+            maxHeight: isMobile ? '300px' : '400px', 
+            overflowY: 'auto' 
+          }}>
             {participantCredits
               .filter(credit => credit.creditBalance > 0)
               .sort((a, b) => b.creditBalance - a.creditBalance)
@@ -392,22 +573,49 @@ const Dashboard: React.FC = () => {
                     style={{ 
                       display: 'flex', 
                       justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      padding: '12px 0',
-                      borderBottom: '1px solid #e5e7eb'
+                      alignItems: isMobile ? 'flex-start' : 'center',
+                      padding: isMobile ? '8px 0' : '12px 0',
+                      borderBottom: '1px solid #e5e7eb',
+                      gap: isMobile ? '0.5rem' : '1rem'
                     }}
                   >
-                    <div>
-                      <p style={{ fontWeight: '500' }}>{participant?.name || 'Unknown'}</p>
-                      <p style={{ fontSize: '14px', color: '#059669', fontWeight: '500' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ 
+                        fontWeight: '500',
+                        fontSize: isMobile ? '14px' : '16px',
+                        margin: '0 0 0.25rem 0',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {participant?.name || 'Unknown'}
+                      </p>
+                      <p style={{ 
+                        fontSize: isMobile ? '12px' : '14px', 
+                        color: '#059669', 
+                        fontWeight: '500',
+                        margin: 0
+                      }}>
                         {prepaidMonths} bulan hadapan
                       </p>
                     </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <p style={{ fontWeight: '600', color: '#047857', fontSize: '16px' }}>
+                    <div style={{ 
+                      textAlign: 'right',
+                      flexShrink: 0
+                    }}>
+                      <p style={{ 
+                        fontWeight: '600', 
+                        color: '#047857', 
+                        fontSize: isMobile ? '14px' : '16px',
+                        margin: '0 0 0.25rem 0'
+                      }}>
                         RM{credit.creditBalance}
                       </p>
-                      <p style={{ fontSize: '12px', color: '#6b7280' }}>
+                      <p style={{ 
+                        fontSize: isMobile ? '10px' : '12px', 
+                        color: '#6b7280',
+                        margin: 0
+                      }}>
                         {credit.transactions.length} transaksi
                       </p>
                     </div>
@@ -416,10 +624,31 @@ const Dashboard: React.FC = () => {
               })}
             
             {participantCredits.filter(credit => credit.creditBalance > 0).length === 0 && (
-              <div style={{ textAlign: 'center', color: '#6b7280', padding: '40px 20px' }}>
-                <CreditCard size={48} style={{ color: '#d1d5db', margin: '0 auto 16px auto' }} />
-                <p style={{ fontSize: '16px', fontWeight: '500' }}>Tiada Baki Kredit</p>
-                <p style={{ fontSize: '14px' }}>Semua peserta telah menggunakan kredit mereka</p>
+              <div style={{ 
+                textAlign: 'center', 
+                color: '#6b7280', 
+                padding: isMobile ? '20px 10px' : '40px 20px' 
+              }}>
+                <CreditCard 
+                  size={isMobile ? 32 : 48} 
+                  style={{ 
+                    color: '#d1d5db', 
+                    margin: isMobile ? '0 auto 8px auto' : '0 auto 16px auto' 
+                  }} 
+                />
+                <p style={{ 
+                  fontSize: isMobile ? '14px' : '16px', 
+                  fontWeight: '500',
+                  margin: '0 0 0.5rem 0'
+                }}>
+                  Tiada Baki Kredit
+                </p>
+                <p style={{ 
+                  fontSize: isMobile ? '12px' : '14px',
+                  margin: 0
+                }}>
+                  Semua peserta telah menggunakan kredit mereka
+                </p>
               </div>
             )}
           </div>
