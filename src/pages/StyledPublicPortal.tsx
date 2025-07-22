@@ -19,6 +19,8 @@ export const StyledPublicPortal: React.FC<StyledPublicPortalProps> = ({
   const [showGroupListing, setShowGroupListing] = useState(false);
   const [stats, setStats] = useState({ totalParticipants: 0, totalGroups: 0, collectionProgress: 0 });
   const [openFaqItems, setOpenFaqItems] = useState<{ [key: number]: boolean }>({});
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isSmallMobile, setIsSmallMobile] = useState(window.innerWidth < 400);
 
   const handleParticipantSelected = (participant: { id: string; name: string; groupId: string }) => {
     setSelectedParticipant(participant);
@@ -111,6 +113,17 @@ export const StyledPublicPortal: React.FC<StyledPublicPortalProps> = ({
       answer: "Tanya di group WhatsApp ini, hubungi Noor Azman bin Omar di 014-6168216, atau hadiri mesyuarat penduduk yang akan diadakan (tarikh akan diumumkan)."
     }
   ];
+
+  // Handle responsive breakpoints
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+      setIsSmallMobile(window.innerWidth < 400);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Load stats on component mount
   useEffect(() => {
@@ -386,39 +399,66 @@ export const StyledPublicPortal: React.FC<StyledPublicPortalProps> = ({
               </div>
             </div>
 
-            {/* Admin Access Button */}
+            {/* Admin Access Button - Mobile Responsive */}
             <div style={{
               position: 'absolute',
-              top: '1rem',
-              right: '1rem',
-              zIndex: 10
+              top: 'clamp(0.75rem, 3vw, 1rem)',
+              right: 'clamp(0.75rem, 3vw, 1rem)',
+              zIndex: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}>
               <button 
                 onClick={handleAdminClick}
                 style={{
-                  backgroundColor: showReturnToAdmin ? 'rgba(5, 150, 105, 0.9)' : 'rgba(255, 255, 255, 0.15)',
+                  backgroundColor: showReturnToAdmin ? 'rgba(5, 150, 105, 0.95)' : 'rgba(255, 255, 255, 0.2)',
                   color: 'white',
-                  border: showReturnToAdmin ? '1px solid rgba(5, 150, 105, 0.5)' : '1px solid rgba(255, 255, 255, 0.3)',
-                  borderRadius: '8px',
-                  padding: '0.5rem 1rem',
+                  border: showReturnToAdmin ? '1px solid rgba(5, 150, 105, 0.6)' : '1px solid rgba(255, 255, 255, 0.4)',
+                  borderRadius: 'clamp(6px, 2vw, 8px)',
+                  padding: 'clamp(0.4rem, 2vw, 0.6rem) clamp(0.6rem, 3vw, 1rem)',
                   cursor: 'pointer',
-                  fontSize: 'clamp(0.75rem, 2.5vw, 0.875rem)',
+                  fontSize: 'clamp(0.7rem, 2.2vw, 0.875rem)',
                   fontWeight: '500',
-                  backdropFilter: 'blur(10px)',
-                  transition: 'all 0.2s',
+                  backdropFilter: 'blur(12px)',
+                  transition: 'all 0.3s ease',
                   fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-                  boxShadow: showReturnToAdmin ? '0 2px 4px rgba(0,0,0,0.2)' : 'none'
+                  boxShadow: showReturnToAdmin 
+                    ? '0 3px 8px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.1)' 
+                    : '0 2px 6px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.1)',
+                  minWidth: 'auto',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 'clamp(0.25rem, 1vw, 0.5rem)',
+                  maxWidth: isSmallMobile ? '100px' : isMobile ? '120px' : 'none',
+                  overflow: isSmallMobile ? 'hidden' : 'visible',
+                  textOverflow: isSmallMobile ? 'ellipsis' : 'unset'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = showReturnToAdmin ? 'rgba(5, 150, 105, 1)' : 'rgba(255, 255, 255, 0.25)';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.backgroundColor = showReturnToAdmin ? 'rgba(5, 150, 105, 1)' : 'rgba(255, 255, 255, 0.3)';
+                  e.currentTarget.style.transform = 'translateY(-1px) scale(1.02)';
+                  e.currentTarget.style.boxShadow = showReturnToAdmin 
+                    ? '0 4px 12px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.15)' 
+                    : '0 3px 10px rgba(0,0,0,0.2), 0 1px 3px rgba(0,0,0,0.1)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = showReturnToAdmin ? 'rgba(5, 150, 105, 0.9)' : 'rgba(255, 255, 255, 0.15)';
-                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.backgroundColor = showReturnToAdmin ? 'rgba(5, 150, 105, 0.95)' : 'rgba(255, 255, 255, 0.2)';
+                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                  e.currentTarget.style.boxShadow = showReturnToAdmin 
+                    ? '0 3px 8px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.1)' 
+                    : '0 2px 6px rgba(0,0,0,0.15), 0 1px 2px rgba(0,0,0,0.1)';
                 }}
               >
-                {showReturnToAdmin ? '🔙 Kembali ke Admin' : '👤 Admin Login'}
+                <span style={{ fontSize: 'clamp(0.8rem, 2.5vw, 1rem)' }}>
+                  {showReturnToAdmin ? '🔙' : '👤'}
+                </span>
+                <span style={{ 
+                  display: isSmallMobile ? 'none' : 'inline',
+                  fontSize: 'clamp(0.65rem, 2vw, 0.8rem)'
+                }}>
+                  {showReturnToAdmin ? 'Admin' : 'Admin'}
+                </span>
               </button>
             </div>
           </div>
