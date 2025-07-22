@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Image as ImageIcon, X, CheckCircle, AlertCircle, Camera } from 'lucide-react';
+import { Upload, Image as ImageIcon, X, CheckCircle, AlertCircle, Camera, FileText } from 'lucide-react';
 import { MONTH_LABELS, KORBAN_MONTHLY_AMOUNT } from '../types';
 import ReceiptService from '../utils/receiptService';
 import UploadTroubleshooting from './UploadTroubleshooting';
@@ -38,27 +38,34 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
     setError(null);
 
     // Validate file
-    const validation = receiptService.validateImageFile(file);
+    const validation = receiptService.validateReceiptFile(file);
     if (!validation.valid) {
       setError(validation.error || 'File tidak valid');
       return;
     }
 
-    // Validate image content
-    const contentValidation = await receiptService.validateImageContent(file);
+    // Validate file content
+    const contentValidation = await receiptService.validateFileContent(file);
     if (!contentValidation.valid) {
-      setError(contentValidation.error || 'Gambar tidak valid');
+      setError(contentValidation.error || 'File tidak valid');
       return;
     }
 
     setSelectedFile(file);
 
     // Create preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    if (file.type === 'application/pdf') {
+      // For PDF, create a thumbnail using the service
+      const thumbnail = await receiptService.createThumbnail(file);
+      setPreview(thumbnail);
+    } else {
+      // For images, use FileReader
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleUpload = async () => {
@@ -72,8 +79,8 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
       // Show intermediate progress
       setUploadProgress(10);
       
-      // Upload image
-      const imageUrl = await receiptService.uploadReceiptImage(
+      // Upload file
+      const fileUrl = await receiptService.uploadReceiptFile(
         participantId,
         month,
         selectedFile
@@ -86,9 +93,9 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
         participantId,
         month,
         amount,
-        receiptImageUrl: imageUrl,
+        receiptImageUrl: fileUrl,
         notes: notes.trim() || undefined
-      });
+      }, selectedFile);
 
       setUploadProgress(100);
       setSuccess(true);
@@ -309,7 +316,7 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
                 marginBottom: '8px',
                 color: '#374151'
               }}>
-                Gambar Resit
+                Resit Pembayaran
               </label>
               
               {!selectedFile ? (
@@ -317,17 +324,20 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
                   className="upload-area"
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <ImageIcon size={48} color="#9ca3af" style={{ margin: '0 auto 16px auto' }} />
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginBottom: '16px' }}>
+                    <ImageIcon size={48} color="#9ca3af" />
+                    <FileText size={48} color="#9ca3af" />
+                  </div>
                   <h4 style={{ color: '#374151', marginBottom: '8px' }}>
-                    Klik untuk pilih gambar resit
+                    Klik untuk pilih resit (gambar atau PDF)
                   </h4>
                   <p style={{ color: '#6b7280', fontSize: '14px', margin: 0 }}>
-                    Format: JPEG, PNG, WebP (Maksimum 5MB)
+                    Format: JPEG, PNG, WebP (maks 5MB) atau PDF (maks 10MB)
                   </p>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
                     style={{ display: 'none' }}
                     onChange={handleFileSelect}
                   />
@@ -343,15 +353,36 @@ const ReceiptUpload: React.FC<ReceiptUploadProps> = ({
                     backgroundColor: '#f9fafb'
                   }}>
                     {preview && (
-                      <img
-                        src={preview}
-                        alt="Preview resit"
-                        style={{
-                          width: '100%',
-                          maxHeight: '300px',
-                          objectFit: 'contain'
-                        }}
-                      />
+                      selectedFile?.type === 'application/pdf' ? (
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          height: '200px',
+                          flexDirection: 'column',
+                          gap: '12px'
+                        }}>
+                          <img
+                            src={preview}
+                            alt="PDF icon"
+                            style={{ width: '64px', height: '64px' }}
+                          />
+                          <div style={{ textAlign: 'center' }}>
+                            <p style={{ margin: 0, color: '#374151', fontWeight: '600' }}>PDF Resit</p>
+                            <p style={{ margin: '4px 0', color: '#6b7280', fontSize: '14px' }}>{selectedFile.name}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <img
+                          src={preview}
+                          alt="Preview resit"
+                          style={{
+                            width: '100%',
+                            maxHeight: '300px',
+                            objectFit: 'contain'
+                          }}
+                        />
+                      )
                     )}
                     <button
                       onClick={clearFile}

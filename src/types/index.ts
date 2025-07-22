@@ -88,6 +88,7 @@ export interface ReceiptUpload {
   approvedBy?: string;
   approvedDate?: Date;
   notes?: string;
+  fileType?: 'image' | 'pdf'; // Track file type for proper display
 }
 
 export const MONTHS = [

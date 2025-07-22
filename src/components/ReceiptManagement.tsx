@@ -186,7 +186,41 @@ const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
                 </div>
               )}
               
-              {imageError ? (
+              {receipt.fileType === 'pdf' ? (
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '16px',
+                  padding: '40px'
+                }}>
+                  <FileText size={64} color="#dc2626" />
+                  <div style={{ textAlign: 'center' }}>
+                    <h3 style={{ margin: '0 0 8px 0', color: '#374151' }}>PDF Resit</h3>
+                    <p style={{ margin: 0, color: '#6b7280', fontSize: '14px' }}>
+                      Klik butang di bawah untuk membuka PDF
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => window.open(receipt.receiptImageUrl, '_blank')}
+                    style={{
+                      padding: '12px 24px',
+                      backgroundColor: '#dc2626',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '16px'
+                    }}
+                  >
+                    <ExternalLink size={20} />
+                    Buka PDF
+                  </button>
+                </div>
+              ) : imageError ? (
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -233,25 +267,27 @@ const ReceiptPreviewModal: React.FC<ReceiptPreviewModalProps> = ({
               )}
             </div>
 
-            <button
-              onClick={() => window.open(receipt.receiptImageUrl, '_blank')}
-              style={{
-                marginTop: '12px',
-                padding: '8px 16px',
-                backgroundColor: '#f3f4f6',
-                color: '#374151',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                justifyContent: 'center'
-              }}
-            >
-              <ExternalLink size={16} />
-              Lihat saiz penuh
-            </button>
+            {receipt.fileType !== 'pdf' && (
+              <button
+                onClick={() => window.open(receipt.receiptImageUrl, '_blank')}
+                style={{
+                  marginTop: '12px',
+                  padding: '8px 16px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  justifyContent: 'center'
+                }}
+              >
+                <ExternalLink size={16} />
+                Lihat saiz penuh
+              </button>
+            )}
           </div>
 
           {/* Receipt Details Section */}

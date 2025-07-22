@@ -15,6 +15,7 @@ export interface ReceiptUpload {
   approvedBy?: string;
   approvedDate?: Date;
   notes?: string;
+  fileType?: 'image' | 'pdf'; // Track file type for proper display
 }
 
 export class ReceiptService {
@@ -28,24 +29,25 @@ export class ReceiptService {
   }
 
   /**
-   * Validate image file
+   * Validate receipt file (images and PDF)
    */
-  validateImageFile(file: File): { valid: boolean; error?: string } {
-    // Check file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+  validateReceiptFile(file: File): { valid: boolean; error?: string } {
+    // Check file type - now supports PDF
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
       return {
         valid: false,
-        error: 'Format fail tidak disokong. Gunakan JPEG, PNG, atau WebP sahaja.'
+        error: 'Format fail tidak disokong. Gunakan JPEG, PNG, WebP, atau PDF sahaja.'
       };
     }
 
-    // Check file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
+    // Check file size - PDF can be larger than images
+    const maxSize = file.type === 'application/pdf' ? 10 * 1024 * 1024 : 5 * 1024 * 1024; // 10MB for PDF, 5MB for images
     if (file.size > maxSize) {
+      const maxSizeText = file.type === 'application/pdf' ? '10MB' : '5MB';
       return {
         valid: false,
-        error: 'Saiz fail terlalu besar. Maksimum 5MB.'
+        error: `Saiz fail terlalu besar. Maksimum ${maxSizeText}.`
       };
     }
 
@@ -53,9 +55,13 @@ export class ReceiptService {
   }
 
   /**
-   * Compress image before upload
+   * Compress image before upload (PDF files are not compressed)
    */
-  async compressImage(file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<File> {
+  async compressFile(file: File, maxWidth: number = 1200, quality: number = 0.8): Promise<File> {
+    // Don't compress PDF files
+    if (file.type === 'application/pdf') {
+      return file;
+    }
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -97,22 +103,22 @@ export class ReceiptService {
   }
 
   /**
-   * Upload receipt image to Firebase Storage
+   * Upload receipt file to Firebase Storage
    */
-  async uploadReceiptImage(
+  async uploadReceiptFile(
     participantId: string,
     month: string,
     file: File
   ): Promise<string> {
     try {
       // Validate file
-      const validation = this.validateImageFile(file);
+      const validation = this.validateReceiptFile(file);
       if (!validation.valid) {
         throw new Error(validation.error);
       }
 
-      // Compress image
-      const compressedFile = await this.compressImage(file);
+      // Compress file (images only, PDF unchanged)
+      const processedFile = await this.compressFile(file);
       
       // Create storage reference with better naming
       const timestamp = Date.now();
@@ -134,7 +140,7 @@ export class ReceiptService {
       };
 
       // Upload file
-      const snapshot = await uploadBytes(storageRef, compressedFile, metadata);
+      const snapshot = await uploadBytes(storageRef, processedFile, metadata);
       
       console.log('Upload successful:', snapshot.metadata.name);
       
@@ -165,14 +171,27 @@ export class ReceiptService {
   }
 
   /**
+   * Get file type from URL or content type
+   */
+  getFileType(fileUrl: string, contentType?: string): 'image' | 'pdf' {
+    if (contentType?.includes('pdf') || fileUrl.toLowerCase().includes('.pdf')) {
+      return 'pdf';
+    }
+    return 'image';
+  }
+
+  /**
    * Submit receipt for approval
    */
-  async submitReceiptForApproval(receiptData: Omit<ReceiptUpload, 'id' | 'uploadDate' | 'status'>): Promise<string> {
+  async submitReceiptForApproval(receiptData: Omit<ReceiptUpload, 'id' | 'uploadDate' | 'status' | 'fileType'>, originalFile?: File): Promise<string> {
     try {
+      const fileType = originalFile ? this.getFileType(receiptData.receiptImageUrl, originalFile.type) : 'image';
+      
       const receiptUpload: Omit<ReceiptUpload, 'id'> = {
         ...receiptData,
         uploadDate: new Date(),
-        status: 'pending'
+        status: 'pending',
+        fileType
       };
 
       // Remove undefined fields to prevent Firestore errors
@@ -263,9 +282,25 @@ export class ReceiptService {
   }
 
   /**
-   * Check if image is valid before upload
+   * Check if file content is valid before upload
    */
-  async validateImageContent(file: File): Promise<{ valid: boolean; error?: string }> {
+  async validateFileContent(file: File): Promise<{ valid: boolean; error?: string }> {
+    // For PDF files, basic validation only
+    if (file.type === 'application/pdf') {
+      // Check if it's a real PDF by looking at file header
+      const arrayBuffer = await file.slice(0, 8).arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      const header = String.fromCharCode(...uint8Array.slice(0, 4));
+      
+      if (header !== '%PDF') {
+        return {
+          valid: false,
+          error: 'Fail PDF tidak sah atau rosak.'
+        };
+      }
+      
+      return { valid: true };
+    }
     return new Promise((resolve) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
@@ -307,9 +342,20 @@ export class ReceiptService {
   }
 
   /**
-   * Create thumbnail for preview
+   * Create thumbnail for preview (images only)
    */
   async createThumbnail(file: File, size: number = 150): Promise<string> {
+    // For PDF files, return a PDF icon placeholder
+    if (file.type === 'application/pdf') {
+      // Return a base64 encoded PDF icon or placeholder
+      return 'data:image/svg+xml;base64,' + btoa(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14,2 L6,2 C4.9,2 4,2.9 4,4 L4,20 C4,21.1 4.9,22 6,22 L18,22 C19.1,22 20,21.1 20,20 L20,8 L14,2 Z"/>
+          <polyline points="14,2 14,8 20,8"/>
+          <text x="12" y="15" text-anchor="middle" fill="red" font-size="6" font-weight="bold">PDF</text>
+        </svg>
+      `);
+    }
     return new Promise((resolve) => {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
