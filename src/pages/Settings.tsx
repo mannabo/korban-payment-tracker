@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Settings as SettingsIcon, Database, Users, Shield, Edit3, Mail } from 'lucide-react';
 import DataInvestigation from '../components/DataInvestigation';
+import DataDiagnostics from '../components/DataDiagnostics';
 import { ChangeRequestManagement } from '../components/ChangeRequestManagement';
 import AdminManagement from '../components/AdminManagement';
 import EmailSettings from '../components/EmailSettings';
 import { deleteOrphanedParticipants } from '../utils/firestore';
 
 const Settings: React.FC = () => {
-  const [activeSection, setActiveSection] = useState<'change-requests' | 'data-investigation' | 'admin-management' | 'data-cleanup' | 'email-settings'>('change-requests');
+  const [activeSection, setActiveSection] = useState<'change-requests' | 'data-investigation' | 'data-diagnostics' | 'admin-management' | 'data-cleanup' | 'email-settings'>('change-requests');
   const [showEmailSettings, setShowEmailSettings] = useState(false);
   const handleCleanupOrphans = async () => {
     if (!window.confirm('Adakah anda pasti ingin memadamkan peserta yang orphaned? Ini akan memadamkan peserta yang tidak mempunyai kumpulan yang sah.')) {
@@ -98,6 +99,26 @@ const Settings: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setActiveSection('data-diagnostics')}
+          style={{
+            padding: '0.75rem 1.5rem',
+            borderRadius: '0.5rem',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            backgroundColor: activeSection === 'data-diagnostics' ? '#dc2626' : '#f3f4f6',
+            color: activeSection === 'data-diagnostics' ? 'white' : '#374151'
+          }}
+        >
+          <Database size={16} />
+          Data Correction
+        </button>
+
+        <button
           onClick={() => setActiveSection('data-cleanup')}
           style={{
             padding: '0.75rem 1.5rem',
@@ -168,6 +189,19 @@ const Settings: React.FC = () => {
             Alat untuk menganalisis dan menyemak konsistensi data dalam pangkalan data.
           </p>
           <DataInvestigation />
+        </div>
+      )}
+
+      {activeSection === 'data-diagnostics' && (
+        <div className="card" style={{ marginBottom: '24px' }}>
+          <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Database size={20} style={{ color: '#dc2626' }} />
+            Data Diagnostics & Correction
+          </h3>
+          <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '20px' }}>
+            🔧 Fix suspicious payment amounts, detect data issues, and correct payment records automatically.
+          </p>
+          <DataDiagnostics />
         </div>
       )}
 
