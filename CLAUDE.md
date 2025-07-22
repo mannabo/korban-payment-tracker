@@ -10,10 +10,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run preview` - Preview production build locally
 - `npm run lint` - Run ESLint for code quality checks
 
-### Firebase Deployment
-- Configured for Firebase Hosting (`firebase.json` present)
-- Build output goes to `dist/` directory
-- Single Page Application with catch-all routing to `/index.html`
+### Deployment Process ⭐ IMPORTANT ⭐
+- **Hosting Provider**: Hostinger (NOT Firebase!)
+- **Domain**: korbanperdana.jpkkhangtuah.com
+- **Repository**: GitHub (mannabo/korban-payment-tracker)
+- **Auto-Deployment**: GitHub → Hostinger integration
+- **Deploy Command**: `git add . && git commit -m "message" && git push origin master`
+- **Deployment Time**: 2-5 minutes after git push
+- **DO NOT USE**: `firebase deploy` (Firebase config exists but not used for hosting)
+- **Build Output**: `dist/` directory (for reference only, auto-deployed from GitHub)
+
+### Firebase Configuration (Backend Only)
+- Firebase Firestore for database
+- Firebase Auth for authentication  
+- Firebase Storage for file uploads
+- `firebase.json` configured but hosting NOT used (use Hostinger instead)
 
 ## Architecture Overview
 
