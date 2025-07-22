@@ -36,7 +36,8 @@ import {
 import { 
   subscribeToAllParticipants, 
   subscribeToGroups,
-  createPayment 
+  createPayment,
+  getPaymentsByParticipant 
 } from '../utils/firestore';
 import ReceiptService from '../utils/receiptService';
 import CreditService from '../utils/creditService';
@@ -815,6 +816,7 @@ const ReceiptManagement: React.FC = () => {
           
           if (confirmation) {
             try {
+              // Add credit first
               await creditService.addPaymentCredit(
                 receipt.participantId,
                 receipt.amount,
@@ -822,10 +824,72 @@ const ReceiptManagement: React.FC = () => {
                 `Credit top-up from receipt ${receipt.id}`
               );
               
-              alert(`✅ Credit added successfully!\n\nRM${receipt.amount} telah ditambah ke baki kredit peserta.`);
+              // Check if credit balance >= RM100 for auto-conversion
+              const updatedCredit = await creditService.getParticipantCredit(receipt.participantId);
+              if (updatedCredit && updatedCredit.creditBalance >= 100) {
+                const fullMonthsAvailable = Math.floor(updatedCredit.creditBalance / 100);
+                
+                // Find next unpaid months to convert
+                const participant = participants.find(p => p.id === receipt.participantId);
+                if (participant) {
+                  // Get current paid payments for this participant
+                  const participantPayments = await getPaymentsByParticipant(receipt.participantId);
+                  const paidMonths = new Set(participantPayments.filter(p => p.isPaid).map(p => p.month));
+                  const unpaidMonths = MONTHS.filter(month => !paidMonths.has(month));
+                  
+                  const monthsToConvert = unpaidMonths.slice(0, fullMonthsAvailable);
+                  
+                  if (monthsToConvert.length > 0) {
+                    let convertedCount = 0;
+                    
+                    // Create payment records for converted months
+                    for (const month of monthsToConvert) {
+                      try {
+                        await createPayment({
+                          participantId: receipt.participantId,
+                          month: month,
+                          amount: 100,
+                          isPaid: true,
+                          paidDate: new Date(),
+                          notes: `Auto-converted from credit balance via receipt ${receipt.id}`
+                        });
+                        
+                        // Deduct from credit
+                        await creditService.useCredit(
+                          receipt.participantId,
+                          100,
+                          month,
+                          `Auto-converted to payment for ${month}`
+                        );
+                        
+                        convertedCount++;
+                      } catch (error) {
+                        console.error(`Error converting credit for month ${month}:`, error);
+                      }
+                    }
+                    
+                    const finalCredit = await creditService.getParticipantCredit(receipt.participantId);
+                    const remainingCredit = finalCredit?.creditBalance || 0;
+                    
+                    alert(
+                      `✅ Credit processed successfully!\n\n` +
+                      `💰 Added: RM${receipt.amount}\n` +
+                      `🔄 Auto-converted: ${convertedCount} months marked as paid\n` +
+                      `💳 Remaining credit: RM${remainingCredit}\n\n` +
+                      `Months converted: ${monthsToConvert.map(m => MONTH_LABELS[m] || m).join(', ')}`
+                    );
+                  } else {
+                    alert(`✅ Credit added successfully!\n\nRM${receipt.amount} telah ditambah ke baki kredit peserta.\nSemua bulan sudah dibayar - credit disimpan untuk masa hadapan.`);
+                  }
+                } else {
+                  alert(`✅ Credit added successfully!\n\nRM${receipt.amount} telah ditambah ke baki kredit peserta.`);
+                }
+              } else {
+                alert(`✅ Credit added successfully!\n\nRM${receipt.amount} telah ditambah ke baki kredit peserta.`);
+              }
             } catch (error) {
-              console.error('Error adding credit:', error);
-              alert('❌ Error adding credit. Please try again.');
+              console.error('Error processing credit:', error);
+              alert('❌ Error processing credit. Please try again.');
             }
           }
           
